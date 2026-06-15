@@ -32,7 +32,7 @@
                     <i class="ph ph-map-trifold text-2xl"></i>
                     Delivery Planner
                 </h1>
-                <p class="text-sm text-indigo-200 mt-1">วางแผนจัดส่ง & ค้นหาพิกัด</p>
+                <p class="text-sm text-indigo-200 mt-1">วางแผนจัดส่ง & แกะพิกัด</p>
             </div>
         </div>
 
@@ -51,29 +51,28 @@
             <!-- ฟอร์มเพิ่มร้านค้า -->
             <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm">
                 <h2 class="font-bold mb-4 flex items-center gap-2 text-indigo-700">
-                    <i class="ph ph-map-pin-plus text-xl"></i> ค้นหาและเพิ่มจุดส่งสินค้า
+                    <i class="ph ph-map-pin-plus text-xl"></i> เพิ่มจุดส่งสินค้า
                 </h2>
                 
                 <div class="space-y-4">
                     
-                    <!-- โซนค้นหาสถานที่ (ใหม่) -->
+                    <!-- โซนดึงพิกัดจากลิงก์ -->
                     <div class="p-3 bg-white border border-indigo-200 rounded-lg shadow-sm">
                         <label class="block text-xs font-bold text-indigo-700 mb-1 flex items-center gap-1">
-                            <i class="ph ph-magnifying-glass"></i> ค้นหาสถานที่ (แนะนำ)
+                            <i class="ph ph-link"></i> วางลิงก์ Google Maps เพื่อดึงพิกัด
                         </label>
-                        <div class="flex gap-2">
-                            <input type="text" id="searchKeyword" class="flex-1 border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="เช่น ฟิวเจอร์เวิลด์ ออดิโอ">
-                            <button onclick="searchLocation()" class="bg-indigo-600 text-white px-4 rounded-md font-medium hover:bg-indigo-700 transition flex items-center gap-1">
-                                ค้นหา
+                        <div class="flex flex-col gap-2">
+                            <input type="text" id="storeLink" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="เช่น https://maps.app.goo.gl/...">
+                            <button onclick="extractCoordsFromLink()" id="btn-extract" class="w-full bg-indigo-600 text-white py-2 rounded-md font-medium hover:bg-indigo-700 transition flex items-center justify-center gap-2">
+                                <i id="btn-extract-icon" class="ph ph-magic-wand"></i> 
+                                <span id="btn-extract-text">ดึงพิกัดอัตโนมัติ</span>
                             </button>
                         </div>
-                        <!-- จุดแสดงผลลัพธ์การค้นหา -->
-                        <div id="searchResults" class="mt-2 space-y-1 hidden max-h-40 overflow-y-auto no-scrollbar"></div>
                     </div>
 
                     <div class="flex items-center gap-2">
                         <hr class="flex-1 border-gray-300">
-                        <span class="text-xs text-gray-400 font-medium">หรือกำหนดเอง</span>
+                        <span class="text-xs text-gray-400 font-medium">รายละเอียดร้าน</span>
                         <hr class="flex-1 border-gray-300">
                     </div>
 
@@ -90,18 +89,13 @@
                                 <input type="tel" id="storePhone" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="081xxxxxxx">
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 mb-1">รายละเอียด/จุดสังเกต</label>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">รายละเอียด</label>
                                 <input type="text" id="storeNote" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="เช่น ซอย 5">
                             </div>
                         </div>
-
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 mb-1">ลิงก์ Google Maps (ถ้ามี)</label>
-                            <input type="text" id="storeLink" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="วางลิงก์ไว้ให้คนขับกดเปิด">
-                        </div>
                         
                         <button onclick="enableMapPicking()" class="w-full py-2 bg-blue-50 border border-blue-200 text-blue-700 font-medium text-xs rounded-md hover:bg-blue-100 transition flex items-center justify-center gap-1">
-                            <i class="ph ph-crosshair text-base"></i> จิ้มปักหมุดบนแผนที่เอง
+                            <i class="ph ph-crosshair text-base"></i> หรือ จิ้มปักหมุดบนแผนที่เอง
                         </button>
 
                         <div class="flex gap-2 bg-gray-50 p-2 rounded border border-gray-100">
@@ -116,7 +110,7 @@
                         </div>
                     </div>
 
-                    <button onclick="saveStore()" class="w-full py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-md flex justify-center items-center gap-2 mt-2">
+                    <button onclick="saveStore()" class="w-full py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition shadow-md flex justify-center items-center gap-2 mt-2">
                         <i class="ph ph-floppy-disk text-lg"></i> บันทึกข้อมูล
                     </button>
                 </div>
@@ -152,7 +146,7 @@
                     <button onclick="clearRoute()" class="w-full py-2.5 bg-red-50 border border-red-200 text-red-600 rounded-lg font-medium hover:bg-red-100 transition flex justify-center items-center gap-1">
                         <i class="ph ph-trash"></i> ล้างข้อมูล
                     </button>
-                    <button onclick="calculateRoute()" class="w-full py-2.5 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition shadow flex justify-center items-center gap-1">
+                    <button onclick="calculateRoute()" class="w-full py-2.5 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition shadow flex justify-center items-center gap-1">
                         <i class="ph ph-path text-lg"></i> คำนวณเส้นทาง
                     </button>
                 </div>
@@ -194,14 +188,6 @@
             renderStores();
             renderRouteAvailableStores();
             updateStoreCount();
-
-            // ค้นหาเมื่อกดปุ่ม Enter
-            document.getElementById("searchKeyword").addEventListener("keypress", function(event) {
-                if (event.key === "Enter") {
-                    event.preventDefault();
-                    searchLocation();
-                }
-            });
         };
 
         function initMap() {
@@ -230,7 +216,6 @@
             drawAllStoreMarkers();
         }
 
-        // ฟังก์ชันกำหนดพิกัดและปักหมุดชั่วคราว
         function setCoordinates(lat, lon, title = 'ตำแหน่งที่เลือก') {
             document.getElementById('storeLat').value = lat.toFixed(6);
             document.getElementById('storeLon').value = lon.toFixed(6);
@@ -243,46 +228,122 @@
             if(window.innerWidth < 768) window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
 
-        // --- ระบบค้นหาสถานที่ (Search API) ---
-        async function searchLocation() {
-            const keyword = document.getElementById('searchKeyword').value.trim();
-            const resultsContainer = document.getElementById('searchResults');
-            
-            if (!keyword) {
-                showToast('กรุณาพิมพ์ชื่อสถานที่ก่อนค้นหา', 'error');
+        // --- ระบบดึงพิกัดจากลิงก์ (แก้ปัญหา CORS และ Link ย่อ) ---
+        async function extractCoordsFromLink() {
+            let link = document.getElementById('storeLink').value.trim();
+            const btnText = document.getElementById('btn-extract-text');
+            const btnIcon = document.getElementById('btn-extract-icon');
+            const btn = document.getElementById('btn-extract');
+
+            if (!link) {
+                showToast('กรุณาวางลิงก์ Google Maps ก่อน', 'error');
                 return;
             }
 
-            resultsContainer.innerHTML = '<div class="p-2 text-sm text-gray-500 text-center"><i class="ph ph-spinner animate-spin"></i> กำลังค้นหา...</div>';
-            resultsContainer.classList.remove('hidden');
+            // ถ้ามี text อื่นๆ ปนมากับลิงก์ (เช่น copy มาจากแชท) ให้สกัดเอาเฉพาะลิงก์
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            const urlMatch = link.match(urlRegex);
+            if(urlMatch) {
+                link = urlMatch[0];
+            } else {
+                showToast('ไม่พบรูปแบบ URL ที่ถูกต้อง', 'error');
+                return;
+            }
+
+            setLoadingState(true);
 
             try {
-                // เรียกใช้ Longdo Search API
-                const response = await fetch(`https://search.longdo.com/mapsearch/json/search?keyword=${encodeURIComponent(keyword)}&limit=5&key=${API_KEY}`);
+                // 1. ลองหาพิกัดจาก URL ปัจจุบันเลย (ถ้าเป็นลิงก์ยาวบนคอม)
+                const directMatch = link.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+                if (directMatch && directMatch.length >= 3) {
+                    setCoordinates(parseFloat(directMatch[1]), parseFloat(directMatch[2]));
+                    showToast('ดึงพิกัดสำเร็จ!');
+                    setLoadingState(false);
+                    return;
+                }
+
+                // 2. ถ้าเป็นลิงก์ย่อ ให้ใช้ unshorten API ฟรี
+                const apiUrl = `https://unshorten.me/api/v2/unshorten?url=${encodeURIComponent(link)}`;
+                const response = await fetch(apiUrl);
                 const data = await response.json();
 
-                if (data && data.data && data.data.length > 0) {
-                    resultsContainer.innerHTML = data.data.map(place => `
-                        <div onclick="selectSearchResult('${place.name.replace(/'/g, "\\'")}', ${place.lat}, ${place.lon})" class="p-2 border-b border-gray-100 hover:bg-indigo-50 cursor-pointer transition rounded">
-                            <div class="font-medium text-sm text-gray-800">${place.name}</div>
-                            <div class="text-xs text-gray-500 truncate">${place.address || 'ไม่ระบุที่อยู่'}</div>
-                        </div>
-                    `).join('');
+                if (data.success && data.unshortened_url) {
+                    const finalUrl = data.unshortened_url;
+                    
+                    // หาพิกัดในลิงก์ที่ถูกขยายแล้ว
+                    const match = finalUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) || finalUrl.match(/query=(-?\d+\.\d+),(-?\d+\.\d+)/);
+                    
+                    if (match && match.length >= 3) {
+                        setCoordinates(parseFloat(match[1]), parseFloat(match[2]));
+                        showToast('ดึงพิกัดสำเร็จ!');
+                    } else {
+                        // ถ้าขยายแล้วยังไม่ได้ ให้พยายามใช้ AllOrigins ดึง HTML
+                        await fallbackExtraction(finalUrl);
+                    }
                 } else {
-                    resultsContainer.innerHTML = '<div class="p-2 text-sm text-red-500 text-center">ไม่พบสถานที่นี้ ลองเปลี่ยนคำค้นหา</div>';
+                    // Fallback ถ้า API แรก fail
+                    await fallbackExtraction(link);
                 }
+
             } catch (error) {
-                resultsContainer.innerHTML = '<div class="p-2 text-sm text-red-500 text-center">เกิดข้อผิดพลาดในการเชื่อมต่อ</div>';
+                console.error("Extraction error:", error);
+                showToast('ไม่สามารถดึงพิกัดได้ กรุณาใช้การปักหมุดเองครับ', 'error');
+            } finally {
+                setLoadingState(false);
             }
         }
 
-        // เมื่อผู้ใช้เลือกผลลัพธ์จากการค้นหา
-        function selectSearchResult(name, lat, lon) {
-            document.getElementById('storeName').value = name;
-            setCoordinates(lat, lon, name);
+        // วิธีสำรอง: ดึง HTML จากลิงก์เพื่อหาพิกัด
+        async function fallbackExtraction(url) {
+            try {
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+                const res = await fetch(proxyUrl);
+                const data = await res.json();
+                
+                if (data.contents) {
+                    const match = data.contents.match(/center=(-?\d+\.\d+)%2C(-?\d+\.\d+)/) || 
+                                  data.contents.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) ||
+                                  data.contents.match(/APP_INITIALIZATION_STATE=\[\[\[(-?\d+\.\d+),(-?\d+\.\d+)/);
+                    if (match && match.length >= 3) {
+                        // บางครั้งค่าที่ได้สลับตำแหน่งกันระหว่าง Google maps web กับ app
+                        // เช็คว่าค่าไหนคือ Lat (มักจะอยู่ระหว่าง -90 ถึง 90) ประเทศไทย Lat ประมาณ 13-18
+                        let lat = parseFloat(match[1]);
+                        let lon = parseFloat(match[2]);
+                        
+                        // ถ้าน่าจะสลับกัน ให้สลับกลับ (ประเทศไทย)
+                        if(lon > 50 && lon < 110 && lat > 90) {
+                            let temp = lat;
+                            lat = lon;
+                            lon = temp;
+                        }
+
+                        setCoordinates(lat, lon);
+                        showToast('ดึงพิกัดสำเร็จ (โหมดสำรอง)!');
+                        return;
+                    }
+                }
+                throw new Error("No coords in HTML");
+            } catch(e) {
+                throw e;
+            }
+        }
+
+        function setLoadingState(isLoading) {
+            const btnText = document.getElementById('btn-extract-text');
+            const btnIcon = document.getElementById('btn-extract-icon');
+            const btn = document.getElementById('btn-extract');
             
-            document.getElementById('searchResults').classList.add('hidden');
-            showToast('ดึงข้อมูลสำเร็จ! กดบันทึกได้เลย');
+            if (isLoading) {
+                btnText.innerText = "กำลังประมวลผล...";
+                btnIcon.className = "ph ph-spinner animate-spin text-lg";
+                btn.classList.add('opacity-75', 'cursor-not-allowed');
+                btn.disabled = true;
+            } else {
+                btnText.innerText = "ดึงพิกัดอัตโนมัติ";
+                btnIcon.className = "ph ph-magic-wand text-lg";
+                btn.classList.remove('opacity-75', 'cursor-not-allowed');
+                btn.disabled = false;
+            }
         }
 
         function showToast(message, type = 'info') {
@@ -341,7 +402,7 @@
                 return;
             }
             if (!lat || !lon) {
-                showToast('กรุณาค้นหาสถานที่ หรือ ปักหมุดก่อน', 'error');
+                showToast('กรุณาดึงพิกัดจากลิงก์ หรือปักหมุดเองก่อน', 'error');
                 return;
             }
 
@@ -359,7 +420,6 @@
             localStorage.setItem('delivery_stores', JSON.stringify(stores));
             
             // ล้างฟอร์ม
-            document.getElementById('searchKeyword').value = '';
             document.getElementById('storeName').value = '';
             document.getElementById('storePhone').value = '';
             document.getElementById('storeNote').value = '';
@@ -368,7 +428,6 @@
             document.getElementById('storeLon').value = '';
             if (tempMarker) map.Overlays.remove(tempMarker);
             tempMarker = null;
-            document.getElementById('searchResults').classList.add('hidden');
 
             showToast('บันทึกข้อมูลเรียบร้อย!');
             updateStoreCount();
@@ -427,7 +486,7 @@
                         <span class="text-xs text-indigo-600 flex items-center gap-1 cursor-pointer font-medium hover:underline" onclick="focusMap(${store.lat}, ${store.lon})">
                             <i class="ph ph-crosshair"></i> ดูบนแผนที่
                         </span>
-                        ${store.gmapLink ? `<a href="${store.gmapLink}" target="_blank" class="text-xs text-blue-500 hover:underline flex items-center gap-1 font-medium"><i class="ph ph-google-logo"></i> เปิด Google Maps</a>` : ''}
+                        ${store.gmapLink ? `<a href="${store.gmapLink}" target="_blank" class="text-xs text-blue-500 hover:underline flex items-center gap-1 font-medium"><i class="ph ph-google-logo"></i> เปิด Map</a>` : ''}
                     </div>
 
                     <button onclick="deleteStore('${store.id}')" class="absolute top-3 right-3 text-gray-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded transition">
