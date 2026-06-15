@@ -11,143 +11,184 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         #route-details { font-size: 0.9rem; }
-        .ldmap_route_dir { margin-bottom: 0.5rem; }
+        .ldmap_route_dir { margin-bottom: 0.5rem; border-bottom: 1px solid #f3f4f6; padding-bottom: 5px; }
         .longdo-popup { font-family: 'Sarabun', sans-serif; padding: 5px; }
         .longdo-popup h4 { margin: 0 0 5px 0; font-size: 16px; color: #4f46e5; }
         .longdo-popup p { margin: 2px 0; font-size: 13px; color: #4b5563; }
+        .scan-line {
+            width: 100%; height: 2px; background-color: #4f46e5; position: absolute;
+            top: 0; left: 0; animation: scan 1.5s infinite linear; display: none;
+        }
+        @keyframes scan { 0% { top: 0; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans h-screen flex flex-col md:flex-row overflow-hidden">
 
     <!-- แจ้งเตือน (Toast) -->
-    <div id="toast" class="fixed top-4 right-4 px-6 py-3 rounded shadow-lg text-white transition-opacity duration-300 opacity-0 hidden z-50">
-        Message
+    <div id="toast" class="fixed top-4 right-4 px-6 py-3 rounded-lg shadow-xl text-white transition-opacity duration-300 opacity-0 hidden z-50 flex items-center gap-2 font-medium">
+        <i id="toast-icon" class="ph ph-info text-xl"></i>
+        <span id="toast-message">Message</span>
     </div>
 
     <!-- แถบด้านข้าง (Sidebar) -->
-    <aside class="w-full md:w-[420px] bg-white shadow-xl flex flex-col h-1/2 md:h-full z-10 shrink-0">
-        <div class="p-5 border-b bg-indigo-600 text-white flex justify-between items-center">
+    <aside class="w-full md:w-[450px] bg-white shadow-2xl flex flex-col h-1/2 md:h-full z-10 shrink-0">
+        <div class="p-5 bg-gradient-to-r from-indigo-700 to-indigo-600 text-white flex justify-between items-center shadow-inner">
             <div>
-                <h1 class="text-xl font-bold flex items-center gap-2">
-                    <i class="ph ph-map-trifold text-2xl"></i>
-                    Delivery Planner
+                <h1 class="text-2xl font-bold flex items-center gap-2 tracking-tight">
+                    <i class="ph-fill ph-map-trifold"></i>
+                    Route Planner Pro
                 </h1>
-                <p class="text-sm text-indigo-200 mt-1">วางแผนจัดส่ง & แกะพิกัด</p>
+                <p class="text-sm text-indigo-100 mt-1 opacity-90">ระบบบริหารจุดจัดส่งและแกะพิกัดอัจฉริยะ</p>
             </div>
         </div>
 
-        <div class="flex border-b bg-gray-50 shrink-0">
-            <button id="btn-tab-stores" onclick="switchTab('stores')" class="flex-1 py-3 font-medium text-indigo-700 bg-indigo-50 border-b-2 border-indigo-600 transition-colors">
-                <i class="ph ph-storefront mr-1"></i> ข้อมูลการจัดส่ง
+        <!-- เมนู Tab -->
+        <div class="flex border-b border-gray-200 bg-gray-50 shrink-0 shadow-sm relative z-20">
+            <button id="btn-tab-stores" onclick="switchTab('stores')" class="flex-1 py-3.5 font-bold text-indigo-700 bg-indigo-50 border-b-[3px] border-indigo-600 transition-all flex justify-center items-center gap-2">
+                <i class="ph-bold ph-storefront"></i> ฐานข้อมูลร้านค้า
             </button>
-            <button id="btn-tab-route" onclick="switchTab('route')" class="flex-1 py-3 font-medium text-gray-500 hover:text-indigo-600 transition-colors border-b-2 border-transparent">
-                <i class="ph ph-routing mr-1"></i> จัดเส้นทาง
+            <button id="btn-tab-route" onclick="switchTab('route')" class="flex-1 py-3.5 font-semibold text-gray-500 hover:text-indigo-600 hover:bg-gray-100 transition-all border-b-[3px] border-transparent flex justify-center items-center gap-2">
+                <i class="ph-bold ph-routing"></i> จัดเส้นทางส่งของ
             </button>
         </div>
 
-        <!-- แท็บ: จัดการร้านค้า -->
-        <div id="tab-stores" class="flex-1 overflow-y-auto no-scrollbar p-4 flex flex-col gap-6">
+        <!-- แท็บ: จัดการร้านค้า (คงความสามารถ Auto Extract ไว้) -->
+        <div id="tab-stores" class="flex-1 overflow-y-auto no-scrollbar p-5 flex flex-col gap-6 bg-gray-50/50">
             
             <!-- ฟอร์มเพิ่มร้านค้า -->
-            <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm">
-                <h2 class="font-bold mb-4 flex items-center gap-2 text-indigo-700">
-                    <i class="ph ph-map-pin-plus text-xl"></i> เพิ่มจุดส่งสินค้า
+            <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden">
+                <div id="loadingScanner" class="scan-line"></div>
+                <h2 class="font-bold mb-4 flex items-center gap-2 text-indigo-700 text-lg">
+                    <i class="ph-fill ph-map-pin-plus"></i> เพิ่มจุดส่งสินค้าใหม่
                 </h2>
                 
                 <div class="space-y-4">
-                    
                     <!-- โซนดึงพิกัดจากลิงก์ -->
-                    <div class="p-3 bg-white border border-indigo-200 rounded-lg shadow-sm">
-                        <label class="block text-xs font-bold text-indigo-700 mb-1 flex items-center gap-1">
-                            <i class="ph ph-link"></i> วางลิงก์ Google Maps เพื่อดึงพิกัด
+                    <div class="p-4 bg-indigo-50/50 border border-indigo-100 rounded-lg">
+                        <label class="block text-sm font-bold text-indigo-800 mb-2 flex items-center gap-1.5">
+                            <i class="ph-bold ph-link text-indigo-600"></i> วางลิงก์ Google Maps เพื่อดึงพิกัด
                         </label>
                         <div class="flex flex-col gap-2">
-                            <input type="text" id="storeLink" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="เช่น https://maps.app.goo.gl/...">
-                            <button onclick="extractCoordsFromLink()" id="btn-extract" class="w-full bg-indigo-600 text-white py-2 rounded-md font-medium hover:bg-indigo-700 transition flex items-center justify-center gap-2">
-                                <i id="btn-extract-icon" class="ph ph-magic-wand"></i> 
-                                <span id="btn-extract-text">ดึงพิกัดอัตโนมัติ</span>
+                            <input type="text" id="storeLink" class="w-full border border-gray-300 rounded-md p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white shadow-sm" placeholder="เช่น https://maps.app.goo.gl/...">
+                            <button onclick="extractCoordsFromLink()" id="btn-extract" class="w-full bg-indigo-600 text-white py-2.5 rounded-md font-bold hover:bg-indigo-700 transition shadow-sm flex items-center justify-center gap-2">
+                                <i id="btn-extract-icon" class="ph-bold ph-magic-wand text-lg"></i> 
+                                <span id="btn-extract-text">ถอดรหัสพิกัดอัตโนมัติ</span>
                             </button>
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-3 py-1">
                         <hr class="flex-1 border-gray-300">
-                        <span class="text-xs text-gray-400 font-medium">รายละเอียดร้าน</span>
+                        <span class="text-xs text-gray-400 font-semibold tracking-wider">หรือกรอกข้อมูลเอง</span>
                         <hr class="flex-1 border-gray-300">
                     </div>
 
                     <!-- โซนข้อมูลทั่วไป -->
                     <div class="space-y-3">
                         <div>
-                            <label class="block text-xs font-medium text-gray-600 mb-1">ชื่อร้านค้า / ลูกค้า <span class="text-red-500">*</span></label>
-                            <input type="text" id="storeName" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="ระบุชื่อสถานที่">
+                            <label class="block text-xs font-semibold text-gray-600 mb-1.5">ชื่อลูกค้า / ร้านค้า <span class="text-red-500">*</span></label>
+                            <input type="text" id="storeName" class="w-full border border-gray-300 rounded-md p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white" placeholder="ระบุชื่อสถานที่">
                         </div>
                         
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 mb-1">เบอร์ติดต่อ</label>
-                                <input type="tel" id="storePhone" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="081xxxxxxx">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1.5">เบอร์โทรติดต่อ</label>
+                                <input type="tel" id="storePhone" class="w-full border border-gray-300 rounded-md p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white" placeholder="08x-xxx-xxxx">
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 mb-1">รายละเอียด</label>
-                                <input type="text" id="storeNote" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="เช่น ซอย 5">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1.5">รายละเอียด/จุดสังเกต</label>
+                                <input type="text" id="storeNote" class="w-full border border-gray-300 rounded-md p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white" placeholder="เช่น ซอย 5 บ้านสีฟ้า">
                             </div>
                         </div>
                         
-                        <button onclick="enableMapPicking()" class="w-full py-2 bg-blue-50 border border-blue-200 text-blue-700 font-medium text-xs rounded-md hover:bg-blue-100 transition flex items-center justify-center gap-1">
-                            <i class="ph ph-crosshair text-base"></i> หรือ จิ้มปักหมุดบนแผนที่เอง
-                        </button>
+                        <div class="pt-2">
+                            <button onclick="enableMapPicking()" class="w-full py-2.5 bg-blue-50 border border-blue-200 text-blue-700 font-semibold text-sm rounded-md hover:bg-blue-100 transition flex items-center justify-center gap-2">
+                                <i class="ph-bold ph-crosshair text-lg"></i> จิ้มเลือกลงบนแผนที่ด้วยตัวเอง
+                            </button>
+                        </div>
 
-                        <div class="flex gap-2 bg-gray-50 p-2 rounded border border-gray-100">
+                        <div class="flex gap-2 bg-gray-100 p-2.5 rounded-md border border-gray-200 shadow-inner mt-2">
                             <div class="flex-1">
-                                <label class="block text-[10px] text-gray-400 uppercase tracking-wider">Lat (ละติจูด)</label>
-                                <input type="text" id="storeLat" readonly class="w-full bg-transparent text-gray-700 text-xs outline-none font-mono">
+                                <label class="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-0.5">Lat (ละติจูด)</label>
+                                <input type="text" id="storeLat" readonly class="w-full bg-transparent text-gray-800 text-sm outline-none font-mono">
                             </div>
-                            <div class="flex-1 border-l border-gray-200 pl-2">
-                                <label class="block text-[10px] text-gray-400 uppercase tracking-wider">Lon (ลองจิจูด)</label>
-                                <input type="text" id="storeLon" readonly class="w-full bg-transparent text-gray-700 text-xs outline-none font-mono">
+                            <div class="flex-1 border-l border-gray-300 pl-3">
+                                <label class="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-0.5">Lon (ลองจิจูด)</label>
+                                <input type="text" id="storeLon" readonly class="w-full bg-transparent text-gray-800 text-sm outline-none font-mono">
                             </div>
                         </div>
                     </div>
 
-                    <button onclick="saveStore()" class="w-full py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition shadow-md flex justify-center items-center gap-2 mt-2">
-                        <i class="ph ph-floppy-disk text-lg"></i> บันทึกข้อมูล
+                    <button onclick="saveStore()" class="w-full py-3.5 mt-2 bg-emerald-600 text-white font-bold text-base rounded-lg hover:bg-emerald-700 transition shadow-lg flex justify-center items-center gap-2 hover:-translate-y-0.5 duration-200">
+                        <i class="ph-bold ph-floppy-disk text-xl"></i> บันทึกข้อมูลลงฐานข้อมูล
                     </button>
                 </div>
             </div>
 
             <!-- รายการที่บันทึก -->
             <div>
-                <h2 class="font-semibold mb-3 text-gray-700 flex items-center justify-between">
-                    <span>รายชื่อจุดส่งสินค้า</span>
-                    <span id="storeCountBadge" class="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">0</span>
+                <h2 class="font-bold mb-3 text-gray-700 flex items-center justify-between text-lg px-1">
+                    <span>รายชื่อจุดจัดส่งในระบบ</span>
+                    <span id="storeCountBadge" class="bg-indigo-100 text-indigo-700 text-sm font-bold px-3 py-1 rounded-full shadow-sm">0</span>
                 </h2>
-                <div id="savedStoresList" class="space-y-3"></div>
+                <div id="savedStoresList" class="space-y-3 pb-6"></div>
             </div>
         </div>
 
-        <!-- แท็บ: วางแผนเส้นทาง -->
-        <div id="tab-route" class="flex-1 overflow-y-auto no-scrollbar p-5 flex flex-col hidden">
-            <div class="mb-4">
-                <h2 class="font-semibold text-gray-700 mb-2">เลือกร้านค้าเพื่อจัดเส้นทาง</h2>
-                <div class="text-xs text-gray-500 mb-3">คลิกเลือกตามลำดับการจัดส่ง (จุดเริ่มต้น -> จุดที่ 1 -> ... -> สิ้นสุด)</div>
-                <div id="routeAvailableStores" class="flex flex-wrap gap-2 mb-5"></div>
-            </div>
-
-            <div class="flex-1 flex flex-col bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                <h2 class="font-semibold text-gray-700 mb-3 flex items-center gap-2 border-b pb-2">
-                    <i class="ph ph-list-numbers text-indigo-600"></i> ลำดับการจัดส่ง
+        <!-- แท็บ: วางแผนเส้นทาง (ปรับปรุงใหม่ เพิ่มฟังก์ชัน) -->
+        <div id="tab-route" class="flex-1 overflow-y-auto no-scrollbar p-5 flex flex-col hidden bg-gray-50/50">
+            
+            <!-- ส่วนที่ 1: ค้นหาและเลือกร้านค้า -->
+            <div class="mb-5 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                <h2 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <i class="ph-fill ph-magnifying-glass text-indigo-600 text-lg"></i> ค้นหาเพื่อเพิ่มเข้าเส้นทาง
                 </h2>
-                <div id="routeSelectedList" class="flex-1 space-y-2 mb-4 overflow-y-auto min-h-[150px] p-1">
-                    <div class="text-sm text-gray-400 text-center mt-10">ยังไม่ได้เลือกจุดส่งสินค้า</div>
+                
+                <!-- ช่องค้นหา (ใหม่) -->
+                <div class="relative mb-3">
+                    <i class="ph-bold ph-magnifying-glass absolute left-3 top-3 text-gray-400 text-lg"></i>
+                    <input type="text" id="routeSearchInput" onkeyup="renderRouteAvailableStores()" class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all shadow-inner" placeholder="พิมพ์ชื่อร้าน หรือรายละเอียดเพื่อค้นหา...">
                 </div>
 
-                <div class="grid grid-cols-2 gap-2 mt-auto pt-4 border-t border-gray-100">
-                    <button onclick="clearRoute()" class="w-full py-2.5 bg-red-50 border border-red-200 text-red-600 rounded-lg font-medium hover:bg-red-100 transition flex justify-center items-center gap-1">
-                        <i class="ph ph-trash"></i> ล้างข้อมูล
+                <!-- ร้านค้าที่เลือกได้ (กรองตามการค้นหา) -->
+                <div id="routeAvailableStores" class="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-1 no-scrollbar">
+                    <!-- JS จะวาดปุ่มตรงนี้ -->
+                </div>
+            </div>
+
+            <!-- ส่วนที่ 2: ลำดับการจัดส่ง (เพิ่มฟังก์ชัน Reorder) -->
+            <div class="flex-1 flex flex-col bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+                <div class="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center shrink-0">
+                    <h2 class="font-bold text-gray-800 flex items-center gap-2">
+                        <i class="ph-fill ph-list-numbers text-indigo-600 text-xl"></i> ลำดับคิวจัดส่ง
+                    </h2>
+                    <span id="routeQueueCount" class="text-xs font-bold bg-indigo-600 text-white px-2 py-1 rounded-full">0 จุด</span>
+                </div>
+                
+                <div id="routeSelectedList" class="flex-1 space-y-2 p-3 overflow-y-auto min-h-[200px] bg-slate-50">
+                    <div class="text-sm text-gray-400 text-center mt-12 py-8 border-2 border-dashed border-gray-200 rounded-xl bg-white">
+                        <i class="ph ph-truck text-4xl mb-2 text-gray-300"></i><br>
+                        ยังไม่ได้เลือกจุดส่งสินค้า<br>คลิกค้นหาและเพิ่มจากด้านบน
+                    </div>
+                </div>
+
+                <!-- แถบเครื่องมือจัดการเส้นทาง -->
+                <div class="p-3 border-t border-gray-100 bg-white grid grid-cols-3 gap-2 shrink-0">
+                    <button onclick="reverseRoute()" class="py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-200 transition flex flex-col items-center justify-center gap-1 border border-gray-200">
+                        <i class="ph-bold ph-arrows-down-up text-lg"></i> สลับไป-กลับ
                     </button>
-                    <button onclick="calculateRoute()" class="w-full py-2.5 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition shadow flex justify-center items-center gap-1">
-                        <i class="ph ph-path text-lg"></i> คำนวณเส้นทาง
+                    <button onclick="copyRoute()" class="py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold hover:bg-blue-100 transition flex flex-col items-center justify-center gap-1 border border-blue-200">
+                        <i class="ph-bold ph-copy text-lg"></i> คัดลอกส่ง Line
+                    </button>
+                    <button onclick="clearRoute()" class="py-2 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100 transition flex flex-col items-center justify-center gap-1 border border-red-200">
+                        <i class="ph-bold ph-trash text-lg"></i> ล้างข้อมูล
+                    </button>
+                </div>
+
+                <!-- ปุ่มคำนวณเส้นทางใหญ่ -->
+                <div class="p-3 pt-0 bg-white shrink-0">
+                    <button onclick="calculateRoute()" class="w-full py-3.5 bg-indigo-600 text-white rounded-lg font-bold text-base hover:bg-indigo-700 transition shadow-md flex justify-center items-center gap-2 hover:-translate-y-0.5 duration-200">
+                        <i class="ph-fill ph-path text-xl"></i> คำนวณเส้นทางและวาดแผนที่
                     </button>
                 </div>
             </div>
@@ -155,23 +196,29 @@
     </aside>
 
     <!-- พื้นที่แผนที่ -->
-    <main class="flex-1 relative h-1/2 md:h-full bg-gray-200">
-        <div id="mapInstruction" class="absolute top-4 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-6 py-3 rounded-full shadow-lg z-[100] font-medium hidden flex items-center gap-2 animate-bounce">
-            <i class="ph ph-mouse-left text-xl"></i> คลิกลงบนแผนที่เพื่อปักหมุด
-            <button onclick="cancelMapPicking()" class="ml-2 bg-white text-blue-600 rounded-full w-6 h-6 flex items-center justify-center hover:bg-gray-100">
-                <i class="ph ph-x"></i>
+    <main class="flex-1 relative h-1/2 md:h-full bg-gray-300">
+        <!-- ปุ่มปักหมุดเอง (ลอย) -->
+        <button onclick="enableMapPicking()" class="absolute top-4 left-4 bg-white text-indigo-700 px-4 py-2.5 rounded-lg shadow-lg border border-gray-200 z-[90] font-bold flex items-center gap-2 hover:bg-gray-50 transition">
+            <i class="ph-bold ph-crosshair text-xl text-red-500"></i> ปักหมุดเอง
+        </button>
+
+        <div id="mapInstruction" class="absolute top-16 left-4 bg-red-600 text-white px-5 py-3 rounded-lg shadow-xl z-[100] font-bold hidden flex items-center gap-2 animate-bounce border-2 border-white">
+            <i class="ph-fill ph-mouse-left text-2xl"></i> คลิกลงบนแผนที่เลย!
+            <button onclick="cancelMapPicking()" class="ml-3 bg-white/20 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-white/40 transition">
+                <i class="ph-bold ph-x text-sm"></i>
             </button>
         </div>
 
-        <div id="route-panel" class="absolute top-4 right-4 w-72 md:w-80 bg-white/95 backdrop-blur shadow-xl rounded-xl border border-gray-200 z-[100] hidden flex flex-col max-h-[80%]">
-            <div class="p-4 border-b bg-indigo-600 font-semibold text-white flex justify-between items-center rounded-t-xl">
-                <span class="flex items-center gap-2"><i class="ph ph-map-trifold"></i> รายละเอียดเส้นทาง</span>
-                <button onclick="closeRoutePanel()" class="text-indigo-100 hover:text-white bg-indigo-700 rounded-md p-1"><i class="ph ph-x"></i></button>
+        <!-- กรอบรายละเอียดเส้นทาง (Turn by Turn) -->
+        <div id="route-panel" class="absolute top-4 right-4 w-72 md:w-80 bg-white/95 backdrop-blur-md shadow-2xl rounded-xl border border-gray-200 z-[100] hidden flex flex-col max-h-[85%] overflow-hidden">
+            <div class="p-4 border-b bg-gradient-to-r from-indigo-700 to-indigo-600 font-bold text-white flex justify-between items-center shadow-sm">
+                <span class="flex items-center gap-2 text-lg"><i class="ph-fill ph-map-trifold"></i> นำทาง (Turn-by-Turn)</span>
+                <button onclick="closeRoutePanel()" class="text-indigo-100 hover:text-white bg-indigo-800/50 rounded-md p-1.5 transition"><i class="ph-bold ph-x"></i></button>
             </div>
-            <div id="route-details" class="p-4 overflow-y-auto text-sm text-gray-700"></div>
+            <div id="route-details" class="p-4 overflow-y-auto text-sm text-gray-700 font-medium bg-white"></div>
         </div>
 
-        <div id="map" class="w-full h-full"></div>
+        <div id="map" class="w-full h-full z-0"></div>
     </main>
 
     <script>
@@ -192,7 +239,7 @@
 
         function initMap() {
             if (typeof longdo === 'undefined') {
-                showToast('ไม่สามารถโหลด Longdo Map ได้', 'error');
+                showToast('ไม่สามารถโหลด Longdo Map ได้ โปรดเช็คอินเทอร์เน็ต', 'error');
                 return;
             }
 
@@ -206,17 +253,16 @@
             map.Event.bind('click', function() {
                 if (isPickingLocation) {
                     let location = map.location(longdo.LocationMode.Pointer);
-                    setCoordinates(location.lat, location.lon);
+                    applyCoordinates(location.lat, location.lon, "ปักหมุดใหม่");
                     isPickingLocation = false;
                     document.getElementById('mapInstruction').classList.add('hidden');
-                    showToast('ปักหมุดสำเร็จ');
                 }
             });
 
             drawAllStoreMarkers();
         }
 
-        function setCoordinates(lat, lon, title = 'ตำแหน่งที่เลือก') {
+        function applyCoordinates(lat, lon, title = 'ตำแหน่งที่เลือก') {
             document.getElementById('storeLat').value = lat.toFixed(6);
             document.getElementById('storeLon').value = lon.toFixed(6);
 
@@ -225,133 +271,93 @@
             map.Overlays.add(tempMarker);
             map.location({lat: lat, lon: lon}, true);
             
+            showToast('📍 ได้รับพิกัดเรียบร้อยแล้ว!', 'success');
             if(window.innerWidth < 768) window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
 
-        // --- ระบบดึงพิกัดจากลิงก์ (แก้ปัญหา CORS และ Link ย่อ) ---
+        // --- ระบบสกัดพิกัด (Auto Extract) คงเดิม ---
         async function extractCoordsFromLink() {
             let link = document.getElementById('storeLink').value.trim();
-            const btnText = document.getElementById('btn-extract-text');
-            const btnIcon = document.getElementById('btn-extract-icon');
-            const btn = document.getElementById('btn-extract');
+            if (!link) { showToast('กรุณาวางลิงก์ก่อนกด', 'error'); return; }
 
-            if (!link) {
-                showToast('กรุณาวางลิงก์ Google Maps ก่อน', 'error');
-                return;
-            }
+            const urlMatch = link.match(/(https?:\/\/[^\s]+)/);
+            if (!urlMatch) { showToast('ไม่พบรูปแบบลิงก์ที่ถูกต้อง', 'error'); return; }
+            link = urlMatch[0];
 
-            // ถ้ามี text อื่นๆ ปนมากับลิงก์ (เช่น copy มาจากแชท) ให้สกัดเอาเฉพาะลิงก์
-            const urlRegex = /(https?:\/\/[^\s]+)/g;
-            const urlMatch = link.match(urlRegex);
-            if(urlMatch) {
-                link = urlMatch[0];
-            } else {
-                showToast('ไม่พบรูปแบบ URL ที่ถูกต้อง', 'error');
-                return;
-            }
+            setExtractionLoading(true);
 
-            setLoadingState(true);
+            const parseCoords = (url, htmlContent = "") => {
+                let m = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) || url.match(/query=(-?\d+\.\d+),(-?\d+\.\d+)/);
+                if (m) return { lat: parseFloat(m[1]), lon: parseFloat(m[2]) };
+                if (htmlContent) {
+                    m = htmlContent.match(/center=(-?\d+\.\d+)%2C(-?\d+\.\d+)/) || htmlContent.match(/APP_INITIALIZATION_STATE=\[\[\[(-?\d+\.\d+),(-?\d+\.\d+)/);
+                    if (m) {
+                        let v1 = parseFloat(m[1]), v2 = parseFloat(m[2]);
+                        if (v1 > 0 && v2 > 0) return { lat: Math.min(v1, v2), lon: Math.max(v1, v2) };
+                    }
+                }
+                return null;
+            };
 
             try {
-                // 1. ลองหาพิกัดจาก URL ปัจจุบันเลย (ถ้าเป็นลิงก์ยาวบนคอม)
-                const directMatch = link.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-                if (directMatch && directMatch.length >= 3) {
-                    setCoordinates(parseFloat(directMatch[1]), parseFloat(directMatch[2]));
-                    showToast('ดึงพิกัดสำเร็จ!');
-                    setLoadingState(false);
-                    return;
-                }
+                let coords = parseCoords(link);
+                if (coords) { applyCoordinates(coords.lat, coords.lon); return; }
 
-                // 2. ถ้าเป็นลิงก์ย่อ ให้ใช้ unshorten API ฟรี
-                const apiUrl = `https://unshorten.me/api/v2/unshorten?url=${encodeURIComponent(link)}`;
-                const response = await fetch(apiUrl);
-                const data = await response.json();
+                try {
+                    let res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(link)}`);
+                    let data = await res.json();
+                    coords = parseCoords(data.status.url || "", data.contents || "");
+                    if (coords) { applyCoordinates(coords.lat, coords.lon); return; }
+                } catch (e) { }
 
-                if (data.success && data.unshortened_url) {
-                    const finalUrl = data.unshortened_url;
-                    
-                    // หาพิกัดในลิงก์ที่ถูกขยายแล้ว
-                    const match = finalUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) || finalUrl.match(/query=(-?\d+\.\d+),(-?\d+\.\d+)/);
-                    
-                    if (match && match.length >= 3) {
-                        setCoordinates(parseFloat(match[1]), parseFloat(match[2]));
-                        showToast('ดึงพิกัดสำเร็จ!');
-                    } else {
-                        // ถ้าขยายแล้วยังไม่ได้ ให้พยายามใช้ AllOrigins ดึง HTML
-                        await fallbackExtraction(finalUrl);
-                    }
-                } else {
-                    // Fallback ถ้า API แรก fail
-                    await fallbackExtraction(link);
-                }
+                try {
+                    let res2 = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(link)}`);
+                    let html2 = await res2.text();
+                    coords = parseCoords(res2.url || link, html2);
+                    if (coords) { applyCoordinates(coords.lat, coords.lon); return; }
+                } catch (e) { }
+
+                throw new Error("Google Blocked");
 
             } catch (error) {
-                console.error("Extraction error:", error);
-                showToast('ไม่สามารถดึงพิกัดได้ กรุณาใช้การปักหมุดเองครับ', 'error');
+                showToast('ดึงไม่ได้ Google บล็อก! ให้กด "จิ้มปักหมุด" แทนครับ', 'error');
             } finally {
-                setLoadingState(false);
+                setExtractionLoading(false);
             }
         }
 
-        // วิธีสำรอง: ดึง HTML จากลิงก์เพื่อหาพิกัด
-        async function fallbackExtraction(url) {
-            try {
-                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-                const res = await fetch(proxyUrl);
-                const data = await res.json();
-                
-                if (data.contents) {
-                    const match = data.contents.match(/center=(-?\d+\.\d+)%2C(-?\d+\.\d+)/) || 
-                                  data.contents.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) ||
-                                  data.contents.match(/APP_INITIALIZATION_STATE=\[\[\[(-?\d+\.\d+),(-?\d+\.\d+)/);
-                    if (match && match.length >= 3) {
-                        // บางครั้งค่าที่ได้สลับตำแหน่งกันระหว่าง Google maps web กับ app
-                        // เช็คว่าค่าไหนคือ Lat (มักจะอยู่ระหว่าง -90 ถึง 90) ประเทศไทย Lat ประมาณ 13-18
-                        let lat = parseFloat(match[1]);
-                        let lon = parseFloat(match[2]);
-                        
-                        // ถ้าน่าจะสลับกัน ให้สลับกลับ (ประเทศไทย)
-                        if(lon > 50 && lon < 110 && lat > 90) {
-                            let temp = lat;
-                            lat = lon;
-                            lon = temp;
-                        }
-
-                        setCoordinates(lat, lon);
-                        showToast('ดึงพิกัดสำเร็จ (โหมดสำรอง)!');
-                        return;
-                    }
-                }
-                throw new Error("No coords in HTML");
-            } catch(e) {
-                throw e;
-            }
-        }
-
-        function setLoadingState(isLoading) {
+        function setExtractionLoading(isLoading) {
             const btnText = document.getElementById('btn-extract-text');
             const btnIcon = document.getElementById('btn-extract-icon');
             const btn = document.getElementById('btn-extract');
+            const scanner = document.getElementById('loadingScanner');
             
             if (isLoading) {
-                btnText.innerText = "กำลังประมวลผล...";
-                btnIcon.className = "ph ph-spinner animate-spin text-lg";
-                btn.classList.add('opacity-75', 'cursor-not-allowed');
-                btn.disabled = true;
+                btnText.innerText = "กำลังเจาะระบบแผนที่...";
+                btnIcon.className = "ph-bold ph-spinner animate-spin text-lg";
+                btn.classList.add('opacity-70', 'cursor-wait');
+                scanner.style.display = 'block';
             } else {
-                btnText.innerText = "ดึงพิกัดอัตโนมัติ";
-                btnIcon.className = "ph ph-magic-wand text-lg";
-                btn.classList.remove('opacity-75', 'cursor-not-allowed');
-                btn.disabled = false;
+                btnText.innerText = "ถอดรหัสพิกัดอัตโนมัติ";
+                btnIcon.className = "ph-bold ph-magic-wand text-lg";
+                btn.classList.remove('opacity-70', 'cursor-wait');
+                scanner.style.display = 'none';
             }
         }
 
-        function showToast(message, type = 'info') {
+        // --- Notification ---
+        function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.className = type === 'error' 
-                ? 'fixed top-4 right-4 px-6 py-3 rounded shadow-lg text-white transition-opacity duration-300 z-[200] bg-red-500'
-                : 'fixed top-4 right-4 px-6 py-3 rounded shadow-lg text-white transition-opacity duration-300 z-[200] bg-green-600';
+            const icon = document.getElementById('toast-icon');
+            document.getElementById('toast-message').innerHTML = message;
+            
+            if(type === 'error') {
+                toast.className = 'fixed top-4 right-4 px-6 py-4 rounded-xl shadow-2xl text-white transition-opacity duration-300 z-[200] bg-red-600 flex items-center gap-3 font-bold';
+                icon.className = 'ph-fill ph-warning-circle text-2xl';
+            } else {
+                toast.className = 'fixed top-4 right-4 px-6 py-4 rounded-xl shadow-2xl text-white transition-opacity duration-300 z-[200] bg-emerald-600 flex items-center gap-3 font-bold';
+                icon.className = 'ph-fill ph-check-circle text-2xl';
+            }
             
             toast.classList.remove('hidden', 'opacity-0');
             setTimeout(() => {
@@ -360,6 +366,7 @@
             }, 3000);
         }
 
+        // --- แท็บ ---
         function switchTab(tab) {
             document.getElementById('tab-stores').classList.toggle('hidden', tab !== 'stores');
             document.getElementById('tab-route').classList.toggle('hidden', tab !== 'route');
@@ -368,11 +375,14 @@
             const btnRoute = document.getElementById('btn-tab-route');
 
             if (tab === 'stores') {
-                btnStores.className = "flex-1 py-3 font-medium text-indigo-700 bg-indigo-50 border-b-2 border-indigo-600 transition-colors";
-                btnRoute.className = "flex-1 py-3 font-medium text-gray-500 hover:text-indigo-600 transition-colors border-b-2 border-transparent";
+                btnStores.className = "flex-1 py-3.5 font-bold text-indigo-700 bg-indigo-50 border-b-[3px] border-indigo-600 transition-all flex justify-center items-center gap-2";
+                btnRoute.className = "flex-1 py-3.5 font-semibold text-gray-500 hover:text-indigo-600 hover:bg-gray-100 transition-all border-b-[3px] border-transparent flex justify-center items-center gap-2";
             } else {
-                btnRoute.className = "flex-1 py-3 font-medium text-indigo-700 bg-indigo-50 border-b-2 border-indigo-600 transition-colors";
-                btnStores.className = "flex-1 py-3 font-medium text-gray-500 hover:text-indigo-600 transition-colors border-b-2 border-transparent";
+                btnRoute.className = "flex-1 py-3.5 font-bold text-indigo-700 bg-indigo-50 border-b-[3px] border-indigo-600 transition-all flex justify-center items-center gap-2";
+                btnStores.className = "flex-1 py-3.5 font-semibold text-gray-500 hover:text-indigo-600 hover:bg-gray-100 transition-all border-b-[3px] border-transparent flex justify-center items-center gap-2";
+                
+                // รีเซ็ตการค้นหา
+                document.getElementById('routeSearchInput').value = '';
                 renderRouteAvailableStores();
                 renderSelectedRoute();
             }
@@ -381,7 +391,10 @@
         function enableMapPicking() {
             isPickingLocation = true;
             document.getElementById('mapInstruction').classList.remove('hidden');
-            if (window.innerWidth < 768) showToast('เลื่อนลงไปที่แผนที่เพื่อคลิกปักหมุด');
+            if (window.innerWidth < 768) {
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                showToast('เลื่อนจอแล้วคลิกบนแผนที่ได้เลยครับ', 'success');
+            }
         }
 
         function cancelMapPicking() {
@@ -389,6 +402,7 @@
             document.getElementById('mapInstruction').classList.add('hidden');
         }
 
+        // --- จัดการข้อมูลร้าน ---
         function saveStore() {
             const name = document.getElementById('storeName').value.trim();
             const phone = document.getElementById('storePhone').value.trim();
@@ -397,14 +411,8 @@
             const lat = document.getElementById('storeLat').value;
             const lon = document.getElementById('storeLon').value;
 
-            if (!name) {
-                showToast('กรุณากรอกชื่อร้านค้า/ลูกค้า', 'error');
-                return;
-            }
-            if (!lat || !lon) {
-                showToast('กรุณาดึงพิกัดจากลิงก์ หรือปักหมุดเองก่อน', 'error');
-                return;
-            }
+            if (!name) { showToast('กรุณากรอกชื่อก่อนบันทึก', 'error'); return; }
+            if (!lat || !lon) { showToast('กรุณาหาพิกัด (ลิงก์/ปักหมุด) ก่อน', 'error'); return; }
 
             const newStore = {
                 id: Date.now().toString(),
@@ -419,7 +427,6 @@
             stores.push(newStore);
             localStorage.setItem('delivery_stores', JSON.stringify(stores));
             
-            // ล้างฟอร์ม
             document.getElementById('storeName').value = '';
             document.getElementById('storePhone').value = '';
             document.getElementById('storeNote').value = '';
@@ -429,14 +436,14 @@
             if (tempMarker) map.Overlays.remove(tempMarker);
             tempMarker = null;
 
-            showToast('บันทึกข้อมูลเรียบร้อย!');
+            showToast('✅ บันทึกข้อมูลร้านลงระบบแล้ว');
             updateStoreCount();
             renderStores();
             drawAllStoreMarkers();
         }
 
         function deleteStore(id) {
-            if(confirm('ลบจุดส่งสินค้านี้?')) {
+            if(confirm('ลบจุดส่งสินค้านี้ออกจากฐานข้อมูล?')) {
                 stores = stores.filter(s => s.id !== id);
                 localStorage.setItem('delivery_stores', JSON.stringify(stores));
                 routeQueue = routeQueue.filter(storeId => storeId !== id);
@@ -446,7 +453,7 @@
                 renderRouteAvailableStores();
                 renderSelectedRoute();
                 drawAllStoreMarkers();
-                showToast('ลบข้อมูลแล้ว');
+                showToast('ลบข้อมูลแล้ว', 'success');
             }
         }
 
@@ -456,8 +463,8 @@
 
         function generatePopupDetail(store) {
             let html = `<div class="longdo-popup"><h4>${store.name}</h4>`;
-            if (store.phone) html += `<p><i class="ph ph-phone"></i> ${store.phone}</p>`;
-            if (store.note) html += `<p><i class="ph ph-note"></i> ${store.note}</p>`;
+            if (store.phone) html += `<p><i class="ph-fill ph-phone"></i> ${store.phone}</p>`;
+            if (store.note) html += `<p><i class="ph-fill ph-chat-text"></i> ${store.note}</p>`;
             html += `</div>`;
             return html;
         }
@@ -465,32 +472,25 @@
         function renderStores() {
             const list = document.getElementById('savedStoresList');
             if (stores.length === 0) {
-                list.innerHTML = `
-                    <div class="text-sm text-gray-400 text-center py-8 border-2 border-dashed border-gray-200 rounded-xl">
-                        <i class="ph ph-empty text-3xl mb-2 text-gray-300 block"></i>
-                        ยังไม่มีข้อมูลร้านค้า
-                    </div>`;
+                list.innerHTML = `<div class="text-sm text-gray-400 text-center py-10 border-2 border-dashed border-gray-200 rounded-xl bg-white"><i class="ph ph-storefront text-4xl mb-2 text-gray-300"></i><br>ยังไม่มีข้อมูลในระบบ</div>`;
                 return;
             }
 
             list.innerHTML = stores.map(store => `
-                <div class="bg-white border border-gray-200 rounded-xl p-3 shadow-sm hover:border-indigo-300 transition group relative pr-10">
-                    <div class="font-semibold text-gray-800 text-base mb-1 truncate pr-2">${store.name}</div>
-                    
-                    <div class="space-y-1 text-sm text-gray-600">
-                        ${store.phone ? `<div class="flex items-start gap-1.5"><i class="ph ph-phone mt-0.5 text-gray-400"></i><span>${store.phone}</span></div>` : ''}
-                        ${store.note ? `<div class="flex items-start gap-1.5"><i class="ph ph-file-text mt-0.5 text-gray-400"></i><span class="line-clamp-2">${store.note}</span></div>` : ''}
+                <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:border-indigo-400 hover:shadow-md transition-all group relative pr-12">
+                    <div class="font-bold text-gray-800 text-base mb-1.5 truncate pr-2">${store.name}</div>
+                    <div class="space-y-1 text-sm text-gray-600 font-medium">
+                        ${store.phone ? `<div class="flex items-start gap-1.5"><i class="ph-fill ph-phone mt-0.5 text-indigo-400"></i><span>${store.phone}</span></div>` : ''}
+                        ${store.note ? `<div class="flex items-start gap-1.5"><i class="ph-fill ph-chat-text mt-0.5 text-orange-400"></i><span class="line-clamp-2">${store.note}</span></div>` : ''}
                     </div>
-
-                    <div class="flex gap-3 mt-3 pt-2 border-t border-gray-100">
-                        <span class="text-xs text-indigo-600 flex items-center gap-1 cursor-pointer font-medium hover:underline" onclick="focusMap(${store.lat}, ${store.lon})">
-                            <i class="ph ph-crosshair"></i> ดูบนแผนที่
+                    <div class="flex gap-4 mt-3 pt-3 border-t border-gray-100">
+                        <span class="text-xs text-indigo-600 flex items-center gap-1 cursor-pointer font-bold hover:text-indigo-800 bg-indigo-50 px-2 py-1 rounded" onclick="focusMap(${store.lat}, ${store.lon})">
+                            <i class="ph-bold ph-crosshair"></i> ดูพิกัดบนแผนที่
                         </span>
-                        ${store.gmapLink ? `<a href="${store.gmapLink}" target="_blank" class="text-xs text-blue-500 hover:underline flex items-center gap-1 font-medium"><i class="ph ph-google-logo"></i> เปิด Map</a>` : ''}
+                        ${store.gmapLink ? `<a href="${store.gmapLink}" target="_blank" class="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 font-bold bg-blue-50 px-2 py-1 rounded"><i class="ph-bold ph-google-logo"></i> เปิด Google Maps</a>` : ''}
                     </div>
-
-                    <button onclick="deleteStore('${store.id}')" class="absolute top-3 right-3 text-gray-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded transition">
-                        <i class="ph ph-trash text-lg"></i>
+                    <button onclick="deleteStore('${store.id}')" class="absolute top-4 right-4 text-gray-300 hover:text-white hover:bg-red-500 p-2 rounded-lg transition-colors">
+                        <i class="ph-bold ph-trash text-lg"></i>
                     </button>
                 </div>
             `).join('');
@@ -506,76 +506,180 @@
             storeMarkers.forEach(m => map.Overlays.remove(m));
             storeMarkers = [];
             stores.forEach(store => {
-                let m = new longdo.Marker({lon: store.lon, lat: store.lat}, { 
-                    title: store.name,
-                    detail: generatePopupDetail(store) 
-                });
+                // เน้นหมุด
+                let m = new longdo.Marker({lon: store.lon, lat: store.lat}, { title: store.name, detail: generatePopupDetail(store) });
                 storeMarkers.push(m);
                 map.Overlays.add(m);
             });
         }
 
+        // ==========================================
+        // --- ส่วนที่ 3: ระบบจัดเส้นทาง (อัปเกรด) ---
+        // ==========================================
+
         function renderRouteAvailableStores() {
             const container = document.getElementById('routeAvailableStores');
-            const available = stores.filter(s => !routeQueue.includes(s.id));
+            const searchKeyword = document.getElementById('routeSearchInput').value.toLowerCase();
+            
+            // กรองร้านที่ 1. ยังไม่ได้เลือก และ 2. ตรงกับคำค้นหา
+            const available = stores.filter(s => {
+                const notSelected = !routeQueue.includes(s.id);
+                const matchSearch = s.name.toLowerCase().includes(searchKeyword) || 
+                                    (s.note && s.note.toLowerCase().includes(searchKeyword));
+                return notSelected && matchSearch;
+            });
+
+            if(available.length === 0) {
+                container.innerHTML = `<div class="text-xs text-gray-400 w-full text-center py-3 bg-gray-50 rounded border border-gray-100">ไม่มีร้านที่ตรงกับการค้นหา</div>`;
+                return;
+            }
+
             container.innerHTML = available.map(store => `
-                <button onclick="addToRoute('${store.id}')" class="bg-white border border-gray-300 text-gray-700 text-sm px-3 py-1.5 rounded-full hover:border-indigo-600 hover:text-indigo-700 transition flex items-center gap-1.5 shadow-sm">
-                    <i class="ph ph-plus-circle text-indigo-500"></i> <span class="truncate max-w-[120px]">${store.name}</span>
+                <button onclick="addToRoute('${store.id}')" class="bg-white border border-gray-300 text-gray-700 text-sm pl-2 pr-3 py-1.5 rounded-full hover:border-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 transition-all flex items-center gap-1.5 shadow-sm font-medium shrink-0">
+                    <i class="ph-fill ph-plus-circle text-indigo-500 text-lg"></i> <span class="truncate max-w-[140px]">${store.name}</span>
                 </button>
             `).join('');
         }
 
         function renderSelectedRoute() {
             const container = document.getElementById('routeSelectedList');
+            document.getElementById('routeQueueCount').innerText = `${routeQueue.length} จุด`;
+
             if (routeQueue.length === 0) {
                 container.innerHTML = `
-                    <div class="text-sm text-gray-400 text-center mt-8 py-6 border-2 border-dashed border-gray-200 rounded-xl">
-                        ยังไม่ได้เลือกจุดส่งสินค้า<br>คลิกรายชื่อด้านบนเพื่อเพิ่มลงในเส้นทาง
+                    <div class="text-sm text-gray-400 text-center mt-12 py-8 border-2 border-dashed border-gray-200 rounded-xl bg-white shadow-sm">
+                        <i class="ph-fill ph-truck text-5xl mb-2 text-gray-200"></i><br>
+                        ยังไม่ได้เลือกจุดส่งสินค้า<br>ค้นหาแล้วคลิก <span class="text-indigo-500 font-bold">+</span> จากรายการด้านบน
                     </div>`;
                 return;
             }
+
             container.innerHTML = routeQueue.map((id, index) => {
                 const store = stores.find(s => s.id === id);
                 return `
-                    <div class="flex items-center gap-3 bg-white border border-indigo-100 rounded-lg p-2 shadow-sm hover:shadow transition">
-                        <div class="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shrink-0 shadow-inner">${index + 1}</div>
-                        <div class="flex-1 overflow-hidden">
-                            <div class="text-sm font-semibold text-gray-800 truncate">${store.name}</div>
-                            ${store.phone ? `<div class="text-xs text-gray-500 truncate"><i class="ph ph-phone"></i> ${store.phone}</div>` : ''}
+                    <div class="flex items-center gap-3 bg-white border border-indigo-100 rounded-xl p-2.5 shadow-sm hover:shadow-md transition-shadow group relative">
+                        
+                        <!-- หมายเลข / ลาก -->
+                        <div class="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-sm font-bold shrink-0 shadow-inner">
+                            ${index + 1}
                         </div>
-                        <button onclick="removeFromRoute('${id}')" class="text-red-400 hover:text-red-600 p-1 bg-red-50 rounded-md">
-                            <i class="ph ph-minus"></i>
+                        
+                        <!-- ข้อมูล -->
+                        <div class="flex-1 overflow-hidden cursor-pointer" onclick="focusMap(${store.lat}, ${store.lon})" title="กดเพื่อดูบนแผนที่">
+                            <div class="text-sm font-bold text-gray-800 truncate group-hover:text-indigo-700 transition-colors">${store.name}</div>
+                            <div class="text-xs text-gray-500 truncate mt-0.5 flex items-center gap-2">
+                                ${store.phone ? `<span class="flex items-center gap-0.5"><i class="ph-fill ph-phone text-indigo-400"></i>${store.phone}</span>` : ''}
+                                ${store.note ? `<span class="text-orange-500 truncate">${store.note}</span>` : ''}
+                            </div>
+                        </div>
+
+                        <!-- ปุ่มจัดการลำดับ (ขึ้น/ลง) -->
+                        <div class="flex flex-col gap-1 pr-2 border-r border-gray-100">
+                            <button onclick="moveRouteUp(${index})" class="text-gray-400 hover:text-indigo-600 disabled:opacity-20" ${index === 0 ? 'disabled' : ''}>
+                                <i class="ph-bold ph-caret-up text-lg"></i>
+                            </button>
+                            <button onclick="moveRouteDown(${index})" class="text-gray-400 hover:text-indigo-600 disabled:opacity-20" ${index === routeQueue.length - 1 ? 'disabled' : ''}>
+                                <i class="ph-bold ph-caret-down text-lg"></i>
+                            </button>
+                        </div>
+
+                        <!-- ปุ่มลบ -->
+                        <button onclick="removeFromRoute('${id}')" class="text-red-400 hover:text-white hover:bg-red-500 w-8 h-8 flex items-center justify-center rounded-lg transition-colors shrink-0">
+                            <i class="ph-bold ph-minus text-lg"></i>
                         </button>
                     </div>
                 `;
             }).join('');
         }
 
-        function addToRoute(id) {
-            routeQueue.push(id);
-            renderRouteAvailableStores();
-            renderSelectedRoute();
+        // ฟังก์ชันเสริมสำหรับหน้าจัดเส้นทาง
+        function addToRoute(id) { 
+            routeQueue.push(id); 
+            document.getElementById('routeSearchInput').value = ''; // เคลียร์ช่องค้นหา
+            renderRouteAvailableStores(); 
+            renderSelectedRoute(); 
+        }
+        function removeFromRoute(id) { 
+            routeQueue = routeQueue.filter(storeId => storeId !== id); 
+            renderRouteAvailableStores(); 
+            renderSelectedRoute(); 
+        }
+        function clearRoute() { 
+            if(routeQueue.length === 0) return;
+            if(!confirm('ล้างเส้นทางทั้งหมดใช่หรือไม่?')) return;
+            routeQueue = []; 
+            renderRouteAvailableStores(); 
+            renderSelectedRoute(); 
+            if(map) { map.Route.clear(); closeRoutePanel(); } 
         }
 
-        function removeFromRoute(id) {
-            routeQueue = routeQueue.filter(storeId => storeId !== id);
-            renderRouteAvailableStores();
-            renderSelectedRoute();
+        function moveRouteUp(index) {
+            if(index > 0) {
+                let temp = routeQueue[index];
+                routeQueue[index] = routeQueue[index - 1];
+                routeQueue[index - 1] = temp;
+                renderSelectedRoute();
+            }
         }
 
-        function clearRoute() {
-            routeQueue = [];
-            renderRouteAvailableStores();
+        function moveRouteDown(index) {
+            if(index < routeQueue.length - 1) {
+                let temp = routeQueue[index];
+                routeQueue[index] = routeQueue[index + 1];
+                routeQueue[index + 1] = temp;
+                renderSelectedRoute();
+            }
+        }
+
+        function reverseRoute() {
+            if(routeQueue.length < 2) return;
+            routeQueue.reverse();
             renderSelectedRoute();
-            if(map) { map.Route.clear(); closeRoutePanel(); }
+            showToast('สลับลำดับเส้นทางไป-กลับแล้ว', 'success');
+        }
+
+        function copyRoute() {
+            if(routeQueue.length === 0) {
+                showToast('ยังไม่มีรายการจัดส่ง', 'error'); return;
+            }
+            
+            let textToCopy = "🚚 ลำดับคิวจัดส่งวันนี้:\n===================\n";
+            routeQueue.forEach((id, index) => {
+                const s = stores.find(x => x.id === id);
+                textToCopy += `${index + 1}. ${s.name}\n`;
+                if(s.phone) textToCopy += `   📞 โทร: ${s.phone}\n`;
+                if(s.note) textToCopy += `   📝 หมายเหตุ: ${s.note}\n`;
+                if(s.gmapLink) textToCopy += `   📍 แผนที่: ${s.gmapLink}\n`;
+                textToCopy += `-------------------\n`;
+            });
+            textToCopy += "ขับรถปลอดภัยนะครับ! 🚙💨";
+
+            // ก๊อปลง Clipboard
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                showToast('คัดลอกข้อความแล้ว นำไปวางใน Line ได้เลย!', 'success');
+            }).catch(err => {
+                // Fallback เผื่อมือถือบางเครื่องก๊อปไม่ได้
+                const textArea = document.createElement("textarea");
+                textArea.value = textToCopy;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showToast('คัดลอกข้อความแล้ว นำไปวางใน Line ได้เลย!', 'success');
+                } catch (err) {
+                    showToast('ไม่สามารถคัดลอกได้อัตโนมัติ', 'error');
+                }
+                document.body.removeChild(textArea);
+            });
         }
 
         function calculateRoute() {
-            if (routeQueue.length < 2) {
-                showToast('ต้องเลือกจุดเริ่มต้น และ จุดสิ้นสุด (อย่างน้อย 2 จุด)', 'error');
-                return;
+            if (routeQueue.length < 2) { 
+                showToast('ต้องมีจุดเริ่มต้น และ จุดสิ้นสุด (อย่างน้อย 2 จุด)', 'error'); 
+                return; 
             }
             if(!map) return;
+            
             map.Route.clear();
             routeQueue.forEach(id => {
                 const store = stores.find(s => s.id === id);
@@ -586,13 +690,12 @@
             });
             map.Route.search();
             document.getElementById('route-panel').classList.remove('hidden');
+            
             if(window.innerWidth < 768) window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-            showToast('กำลังคำนวณเส้นทาง... 🚚');
+            showToast('กำลังวาดเส้นทางบนแผนที่... 🚚', 'success');
         }
 
-        function closeRoutePanel() {
-            document.getElementById('route-panel').classList.add('hidden');
-        }
+        function closeRoutePanel() { document.getElementById('route-panel').classList.add('hidden'); }
     </script>
 </body>
 </html>
