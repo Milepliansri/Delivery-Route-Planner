@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบวางแผนจัดส่งสินค้า - Longdo Map</title>
+    <!-- Tailwind CSS สำหรับการออกแบบ UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Longdo Map API พร้อม API Key -->
+    <script src="https://api.longdo.com/map/?key=6507d58aa4162fa33423059a71c9fc39"></script>
+    <!-- ไอคอนจาก Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        /* ซ่อน Scrollbar แต่ยังเลื่อนได้ */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        /* ปรับแต่งส่วนแสดงผลเส้นทางของ Longdo */
+        #route-details {
+            font-size: 0.9rem;
+        }
+        .ldmap_route_dir { margin-bottom: 0.5rem; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans h-screen flex flex-col md:flex-row overflow-hidden">
+
+    <!-- แจ้งเตือน (Toast) -->
+    <div id="toast" class="fixed top-4 right-4 px-6 py-3 rounded shadow-lg text-white transition-opacity duration-300 opacity-0 hidden z-50">
+        Message
+    </div>
+
+    <!-- แถบด้านข้าง (Sidebar) -->
+    <aside class="w-full md:w-[400px] bg-white shadow-xl flex flex-col h-1/2 md:h-full z-10 shrink-0">
+        <!-- หัวข้อ -->
+        <div class="p-5 border-b bg-indigo-600 text-white">
+            <h1 class="text-xl font-bold flex items-center gap-2">
+                <i class="ph ph-map-trifold text-2xl"></i>
+                Delivery Planner
+            </h1>
+            <p class="text-sm text-indigo-200 mt-1">วางแผนเส้นทางด้วย Longdo Map</p>
+        </div>
+
+        <!-- แท็บเมนู -->
+        <div class="flex border-b bg-gray-50">
+            <button id="btn-tab-stores" onclick="switchTab('stores')" class="flex-1 py-3 font-medium text-indigo-700 bg-indigo-50 border-b-2 border-indigo-600 transition-colors">
+                <i class="ph ph-storefront mr-1"></i> จัดการร้านค้า
+            </button>
+            <button id="btn-tab-route" onclick="switchTab('route')" class="flex-1 py-3 font-medium text-gray-500 hover:text-indigo-600 transition-colors">
+                <i class="ph ph-routing mr-1"></i> วางแผนเส้นทาง
+            </button>
+        </div>
+
+        <!-- เนื้อหาแท็บ: จัดการร้านค้า -->
+        <div id="tab-stores" class="flex-1 overflow-y-auto no-scrollbar p-5 flex flex-col gap-6">
+            
+            <!-- ฟอร์มเพิ่มร้านค้า -->
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <h2 class="font-semibold mb-3 flex items-center gap-2">
+                    <i class="ph ph-plus-circle text-indigo-600"></i> เพิ่มร้านค้าใหม่
+                </h2>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">ชื่อร้านค้า <span class="text-red-500">*</span></label>
+                        <input type="text" id="storeName" class="w-full border border-gray-300 rounded p-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" placeholder="เช่น ร้านกะเพราป้าสมศรี">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">ลิงก์ Google Maps</label>
+                        <input type="text" id="storeLink" class="w-full border border-gray-300 rounded p-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" placeholder="วางลิงก์เพื่อเก็บไว้ หรือเพื่อดึงพิกัด">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="extractCoordsFromLink()" class="w-full py-2 bg-white border border-gray-300 text-gray-700 text-xs rounded hover:bg-gray-100 transition">
+                            <i class="ph ph-link"></i> ดึงพิกัดจากลิงก์
+                        </button>
+                        <button onclick="enableMapPicking()" class="w-full py-2 bg-blue-50 border border-blue-200 text-blue-700 text-xs rounded hover:bg-blue-100 transition">
+                            <i class="ph ph-crosshair"></i> ปักหมุดบนแผนที่
+                        </button>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <div class="flex-1">
+                            <label class="block text-xs text-gray-400">ละติจูด (Lat)</label>
+                            <input type="text" id="storeLat" readonly class="w-full bg-gray-100 border border-gray-300 rounded p-1.5 text-xs text-gray-600">
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-xs text-gray-400">ลองจิจูด (Lon)</label>
+                            <input type="text" id="storeLon" readonly class="w-full bg-gray-100 border border-gray-300 rounded p-1.5 text-xs text-gray-600">
+                        </div>
+                    </div>
+
+                    <button onclick="saveStore()" class="w-full py-2 bg-indigo-600 text-white font-medium rounded hover:bg-indigo-700 transition shadow-sm">
+                        บันทึกร้านค้า
+                    </button>
+                </div>
+            </div>
+
+            <!-- รายการร้านค้าที่บันทึก -->
+            <div>
+                <h2 class="font-semibold mb-3 text-gray-700">รายชื่อร้านค้าที่บันทึกไว้</h2>
+                <div id="savedStoresList" class="space-y-2">
+                    <!-- รายการจะถูกสร้างด้วย JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- เนื้อหาแท็บ: วางแผนเส้นทาง -->
+        <div id="tab-route" class="flex-1 overflow-y-auto no-scrollbar p-5 flex flex-col hidden">
+            
+            <div class="mb-4">
+                <h2 class="font-semibold text-gray-700 mb-2">เลือกร้านค้าเพื่อจัดเส้นทาง</h2>
+                <div class="text-xs text-gray-500 mb-3">คลิก [+] เพื่อเพิ่มร้านค้าเข้าสู่เส้นทางการจัดส่งตามลำดับ</div>
+                
+                <!-- ร้านค้าที่สามารถเลือกได้ -->
+                <div id="routeAvailableStores" class="flex flex-wrap gap-2 mb-5">
+                    <!-- รายการจะถูกสร้างด้วย JS -->
+                </div>
+            </div>
+
+            <!-- ลำดับเส้นทาง -->
+            <div class="flex-1 flex flex-col bg-gray-50 rounded-lg border border-gray-200 p-4">
+                <h2 class="font-semibold text-gray-700 mb-3">ลำดับการจัดส่ง</h2>
+                <div id="routeSelectedList" class="flex-1 space-y-2 mb-4 overflow-y-auto min-h-[150px]">
+                    <!-- รายการที่เลือกจะถูกสร้างด้วย JS -->
+                    <div class="text-sm text-gray-400 text-center mt-10">ยังไม่ได้เลือกร้านค้า</div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 mt-auto pt-3 border-t border-gray-200">
+                    <button onclick="clearRoute()" class="w-full py-2 bg-white border border-gray-300 text-gray-600 rounded font-medium hover:bg-gray-100 transition">
+                        ล้างข้อมูล
+                    </button>
+                    <button onclick="calculateRoute()" class="w-full py-2 bg-green-600 text-white rounded font-medium hover:bg-green-700 transition shadow-sm">
+                        <i class="ph ph-path"></i> คำนวณเส้นทาง
+                    </button>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- พื้นที่แผนที่ -->
+    <main class="flex-1 relative h-1/2 md:h-full bg-gray-200">
+        <!-- ข้อความแจ้งเตือนให้ปักหมุด (ซ่อนไว้เริ่มต้น) -->
+        <div id="mapInstruction" class="absolute top-4 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-6 py-3 rounded-full shadow-lg z-[100] font-medium hidden flex items-center gap-2 animate-bounce">
+            <i class="ph ph-mouse-left text-xl"></i> คลิกลงบนแผนที่เพื่อปักหมุดร้านค้า
+            <button onclick="cancelMapPicking()" class="ml-2 bg-white text-blue-600 rounded-full w-6 h-6 flex items-center justify-center hover:bg-gray-100">
+                <i class="ph ph-x"></i>
+            </button>
+        </div>
+
+        <!-- รายละเอียดเส้นทาง (จะแสดงเมื่อคำนวณ) -->
+        <div id="route-panel" class="absolute top-4 right-4 w-72 bg-white/95 backdrop-blur shadow-lg rounded-lg border border-gray-200 z-[100] hidden flex flex-col max-h-[80%]">
+            <div class="p-3 border-b bg-gray-50 font-semibold text-gray-700 flex justify-between items-center rounded-t-lg">
+                รายละเอียดเส้นทาง
+                <button onclick="closeRoutePanel()" class="text-gray-400 hover:text-gray-700"><i class="ph ph-x"></i></button>
+            </div>
+            <div id="route-details" class="p-4 overflow-y-auto text-sm text-gray-600">
+                <!-- Longdo จะใส่ Text ให้อัตโนมัติ -->
+            </div>
+        </div>
+
+        <!-- คอนเทนเนอร์ Longdo Map -->
+        <div id="map" class="w-full h-full"></div>
+    </main>
+
+    <script>
+        // --- ตัวแปรหลัก ---
+        let map;
+        let stores = JSON.parse(localStorage.getItem('delivery_stores')) || [];
+        let routeQueue = []; // เก็บ ID ร้านค้าตามลำดับเส้นทาง
+        
+        // ตัวแปรสำหรับแผนที่
+        let isPickingLocation = false;
+        let tempMarker = null;
+        let storeMarkers = []; // เก็บ marker ของร้านที่บันทึกไว้
+
+        // --- เริ่มต้นระบบ ---
+        window.onload = function() {
+            initMap();
+            renderStores();
+            renderRouteAvailableStores();
+        };
+
+        function initMap() {
+            if (typeof longdo === 'undefined') {
+                showToast('ไม่สามารถโหลด Longdo Map API ได้ โปรดตรวจสอบอินเทอร์เน็ต', 'error');
+                return;
+            }
+
+            map = new longdo.Map({
+                placeholder: document.getElementById('map'),
+                language: 'th'
+            });
+
+            // กำหนดพื้นที่แสดงผลข้อความเส้นทาง
+            map.Route.placeholder(document.getElementById('route-details'));
+
+            // จัดการ Event คลิกบนแผนที่ (สำหรับตอนปักหมุด)
+            map.Event.bind('click', function() {
+                if (isPickingLocation) {
+                    let location = map.location(longdo.LocationMode.Pointer);
+                    
+                    document.getElementById('storeLat').value = location.lat.toFixed(6);
+                    document.getElementById('storeLon').value = location.lon.toFixed(6);
+
+                    // ย้ายหมุดชั่วคราว
+                    if (tempMarker) map.Overlays.remove(tempMarker);
+                    tempMarker = new longdo.Marker(location, {
+                        title: 'ตำแหน่งร้านที่เลือก',
+                        detail: 'คุณกำลังปักหมุดที่นี่'
+                    });
+                    map.Overlays.add(tempMarker);
+
+                    // ปิดโหมดปักหมุด
+                    isPickingLocation = false;
+                    document.getElementById('mapInstruction').classList.add('hidden');
+                    showToast('เลือกตำแหน่งเรียบร้อยแล้ว');
+                }
+            });
+
+            // วาดหมุดร้านค้าเดิมที่มีอยู่แล้วบนแผนที่
+            drawAllStoreMarkers();
+        }
+
+        // --- ระบบแจ้งเตือน ---
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            
+            if(type === 'error') {
+                toast.className = 'fixed top-4 right-4 px-6 py-3 rounded shadow-lg text-white transition-opacity duration-300 z-[200] bg-red-500';
+            } else {
+                toast.className = 'fixed top-4 right-4 px-6 py-3 rounded shadow-lg text-white transition-opacity duration-300 z-[200] bg-green-600';
+            }
+            
+            toast.classList.remove('hidden', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                setTimeout(() => toast.classList.add('hidden'), 300);
+            }, 3000);
+        }
+
+        // --- การจัดการ UI (Tabs) ---
+        function switchTab(tab) {
+            document.getElementById('tab-stores').classList.toggle('hidden', tab !== 'stores');
+            document.getElementById('tab-route').classList.toggle('hidden', tab !== 'route');
+            
+            const btnStores = document.getElementById('btn-tab-stores');
+            const btnRoute = document.getElementById('btn-tab-route');
+
+            if (tab === 'stores') {
+                btnStores.className = "flex-1 py-3 font-medium text-indigo-700 bg-indigo-50 border-b-2 border-indigo-600 transition-colors";
+                btnRoute.className = "flex-1 py-3 font-medium text-gray-500 hover:text-indigo-600 transition-colors border-b-2 border-transparent";
+            } else {
+                btnRoute.className = "flex-1 py-3 font-medium text-indigo-700 bg-indigo-50 border-b-2 border-indigo-600 transition-colors";
+                btnStores.className = "flex-1 py-3 font-medium text-gray-500 hover:text-indigo-600 transition-colors border-b-2 border-transparent";
+                renderRouteAvailableStores();
+                renderSelectedRoute();
+            }
+        }
+
+        // --- ฟังก์ชันจัดการร้านค้า ---
+
+        // ดึงพิกัดจากลิงก์ Google Maps โดยใช้ Regex
+        function extractCoordsFromLink() {
+            const link = document.getElementById('storeLink').value;
+            if (!link) {
+                showToast('กรุณาวางลิงก์ Google Maps ก่อน', 'error');
+                return;
+            }
+            // พยายามหา @lat,lon
+            const match = link.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+            if (match && match.length >= 3) {
+                const lat = parseFloat(match[1]);
+                const lon = parseFloat(match[2]);
+                document.getElementById('storeLat').value = lat.toFixed(6);
+                document.getElementById('storeLon').value = lon.toFixed(6);
+                
+                // พรีวิวหมุด
+                if (tempMarker) map.Overlays.remove(tempMarker);
+                tempMarker = new longdo.Marker({lat: lat, lon: lon});
+                map.Overlays.add(tempMarker);
+                map.location({lat: lat, lon: lon}, true);
+                
+                showToast('ดึงพิกัดสำเร็จ!');
+            } else {
+                showToast('ไม่พบพิกัดในลิงก์ (อาจเป็นลิงก์แบบย่อ) กรุณาใช้การปักหมุดบนแผนที่แทน', 'error');
+            }
+        }
+
+        // เปิดโหมดคลิกบนแผนที่
+        function enableMapPicking() {
+            isPickingLocation = true;
+            document.getElementById('mapInstruction').classList.remove('hidden');
+            if (window.innerWidth < 768) {
+                showToast('เลื่อนไปที่แผนที่ด้านล่างแล้วคลิกเพื่อปักหมุด');
+            }
+        }
+
+        function cancelMapPicking() {
+            isPickingLocation = false;
+            document.getElementById('mapInstruction').classList.add('hidden');
+        }
+
+        function saveStore() {
+            const name = document.getElementById('storeName').value.trim();
+            const link = document.getElementById('storeLink').value.trim();
+            const lat = document.getElementById('storeLat').value;
+            const lon = document.getElementById('storeLon').value;
+
+            if (!name) {
+                showToast('กรุณากรอกชื่อร้านค้า', 'error');
+                return;
+            }
+            if (!lat || !lon) {
+                showToast('กรุณาระบุพิกัดโดยการดึงจากลิงก์หรือปักหมุดบนแผนที่', 'error');
+                return;
+            }
+
+            const newStore = {
+                id: Date.now().toString(),
+                name: name,
+                gmapLink: link,
+                lat: parseFloat(lat),
+                lon: parseFloat(lon)
+            };
+
+            stores.push(newStore);
+            localStorage.setItem('delivery_stores', JSON.stringify(stores));
+            
+            // ล้างฟอร์ม
+            document.getElementById('storeName').value = '';
+            document.getElementById('storeLink').value = '';
+            document.getElementById('storeLat').value = '';
+            document.getElementById('storeLon').value = '';
+            if (tempMarker) map.Overlays.remove(tempMarker);
+            tempMarker = null;
+
+            showToast('บันทึกร้านค้าสำเร็จ!');
+            renderStores();
+            drawAllStoreMarkers();
+        }
+
+        function deleteStore(id) {
+            if(confirm('คุณต้องการลบร้านค้านี้ใช่หรือไม่?')) {
+                stores = stores.filter(s => s.id !== id);
+                localStorage.setItem('delivery_stores', JSON.stringify(stores));
+                // ลบออกจากคิวเส้นทางด้วยถ้ามี
+                routeQueue = routeQueue.filter(storeId => storeId !== id);
+                
+                renderStores();
+                renderRouteAvailableStores();
+                renderSelectedRoute();
+                drawAllStoreMarkers();
+                showToast('ลบร้านค้าแล้ว');
+            }
+        }
+
+        // แสดงรายการร้านค้าในแท็บจัดการ
+        function renderStores() {
+            const list = document.getElementById('savedStoresList');
+            if (stores.length === 0) {
+                list.innerHTML = '<div class="text-sm text-gray-400 text-center py-4">ยังไม่มีร้านค้าที่บันทึกไว้</div>';
+                return;
+            }
+
+            list.innerHTML = stores.map(store => `
+                <div class="bg-white border border-gray-200 rounded p-3 flex justify-between items-center shadow-sm">
+                    <div class="overflow-hidden">
+                        <div class="font-medium text-sm text-gray-800 truncate" title="${store.name}">${store.name}</div>
+                        <div class="flex gap-2 mt-1">
+                            ${store.gmapLink ? `<a href="${store.gmapLink}" target="_blank" class="text-xs text-blue-500 hover:underline flex items-center gap-1"><i class="ph ph-map-pin"></i> Google Map</a>` : ''}
+                            <span class="text-xs text-gray-400 flex items-center gap-1 cursor-pointer hover:text-indigo-600" onclick="focusMap(${store.lat}, ${store.lon})">
+                                <i class="ph ph-target"></i> ดูบนแผนที่
+                            </span>
+                        </div>
+                    </div>
+                    <button onclick="deleteStore('${store.id}')" class="text-red-400 hover:text-red-600 p-2 rounded hover:bg-red-50">
+                        <i class="ph ph-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function focusMap(lat, lon) {
+            if(map) map.location({lat: lat, lon: lon}, true);
+            if(window.innerWidth < 768) {
+                 window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            }
+        }
+
+        // --- ฟังก์ชันจัดการแผนที่ (Map Rendering) ---
+        function drawAllStoreMarkers() {
+            if(!map) return;
+            
+            // ลบหมุดร้านค้าเดิมทั้งหมด
+            storeMarkers.forEach(m => map.Overlays.remove(m));
+            storeMarkers = [];
+
+            stores.forEach(store => {
+                let m = new longdo.Marker({lon: store.lon, lat: store.lat}, {
+                    title: store.name,
+                    detail: 'ร้านค้าที่บันทึกไว้'
+                });
+                storeMarkers.push(m);
+                map.Overlays.add(m);
+            });
+        }
+
+        // --- ฟังก์ชันจัดเส้นทาง (Routing) ---
+
+        function renderRouteAvailableStores() {
+            const container = document.getElementById('routeAvailableStores');
+            // แสดงเฉพาะร้านที่ยังไม่ได้เลือกใน routeQueue
+            const available = stores.filter(s => !routeQueue.includes(s.id));
+            
+            container.innerHTML = available.map(store => `
+                <button onclick="addToRoute('${store.id}')" class="bg-white border border-gray-300 text-gray-700 text-sm px-3 py-1.5 rounded-full hover:border-indigo-500 hover:text-indigo-600 transition flex items-center gap-1 shadow-sm">
+                    <i class="ph ph-plus text-xs"></i> ${store.name}
+                </button>
+            `).join('');
+        }
+
+        function renderSelectedRoute() {
+            const container = document.getElementById('routeSelectedList');
+            
+            if (routeQueue.length === 0) {
+                container.innerHTML = '<div class="text-sm text-gray-400 text-center mt-10">ยังไม่ได้เลือกร้านค้า<br>คลิกเพิ่มจากด้านบนเพื่อสร้างเส้นทาง</div>';
+                return;
+            }
+
+            container.innerHTML = routeQueue.map((id, index) => {
+                const store = stores.find(s => s.id === id);
+                return `
+                    <div class="flex items-center gap-3 bg-white border border-indigo-100 rounded p-2 shadow-sm">
+                        <div class="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                            ${index + 1}
+                        </div>
+                        <div class="flex-1 text-sm font-medium text-gray-700 truncate">
+                            ${store.name}
+                        </div>
+                        <button onclick="removeFromRoute('${id}')" class="text-gray-400 hover:text-red-500 p-1">
+                            <i class="ph ph-minus-circle text-lg"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function addToRoute(id) {
+            routeQueue.push(id);
+            renderRouteAvailableStores();
+            renderSelectedRoute();
+        }
+
+        function removeFromRoute(id) {
+            routeQueue = routeQueue.filter(storeId => storeId !== id);
+            renderRouteAvailableStores();
+            renderSelectedRoute();
+        }
+
+        function clearRoute() {
+            routeQueue = [];
+            renderRouteAvailableStores();
+            renderSelectedRoute();
+            
+            if(map) {
+                map.Route.clear(); // ล้างเส้นทางบน Longdo Map
+                closeRoutePanel();
+            }
+        }
+
+        function calculateRoute() {
+            if (routeQueue.length < 2) {
+                showToast('กรุณาเลือกร้านค้าอย่างน้อย 2 จุด (เช่น จุดเริ่มต้น และ จุดหมาย)', 'error');
+                return;
+            }
+
+            if(!map) return;
+
+            map.Route.clear();
+            
+            // นำพิกัดร้านที่เลือกไปใส่ใน Longdo Route API
+            routeQueue.forEach(id => {
+                const store = stores.find(s => s.id === id);
+                if(store) {
+                    map.Route.add(new longdo.Marker({ lon: store.lon, lat: store.lat }, { title: store.name }));
+                }
+            });
+
+            // สั่งคำนวณ
+            map.Route.search();
+            document.getElementById('route-panel').classList.remove('hidden');
+            
+            if(window.innerWidth < 768) {
+                 window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            }
+            
+            showToast('กำลังคำนวณเส้นทาง...');
+        }
+
+        function closeRoutePanel() {
+            document.getElementById('route-panel').classList.add('hidden');
+        }
+
+    </script>
+</body>
+</html>
