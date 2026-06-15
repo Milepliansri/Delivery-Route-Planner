@@ -12,7 +12,6 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         #route-details { font-size: 0.9rem; }
         .ldmap_route_dir { margin-bottom: 0.5rem; }
-        /* ปรับแต่ง Popup ของ Longdo Map */
         .longdo-popup { font-family: 'Sarabun', sans-serif; padding: 5px; }
         .longdo-popup h4 { margin: 0 0 5px 0; font-size: 16px; color: #4f46e5; }
         .longdo-popup p { margin: 2px 0; font-size: 13px; color: #4b5563; }
@@ -47,66 +46,72 @@
         </div>
 
         <!-- แท็บ: จัดการร้านค้า -->
-        <div id="tab-stores" class="flex-1 overflow-y-auto no-scrollbar p-5 flex flex-col gap-6">
+        <div id="tab-stores" class="flex-1 overflow-y-auto no-scrollbar p-4 flex flex-col gap-6">
             
-            <!-- ฟอร์มเพิ่มร้านค้า (แบบละเอียด) -->
+            <!-- ฟอร์มเพิ่มร้านค้า -->
             <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm">
                 <h2 class="font-bold mb-4 flex items-center gap-2 text-indigo-700">
-                    <i class="ph ph-plus-circle text-xl"></i> เพิ่มจุดส่งสินค้า / ร้านค้า
+                    <i class="ph ph-map-pin-plus text-xl"></i> ค้นหาและเพิ่มจุดส่งสินค้า
                 </h2>
                 
                 <div class="space-y-4">
-                    <!-- โซน 1: ข้อมูลทั่วไป -->
-                    <div class="p-3 bg-white border border-gray-200 rounded-lg space-y-3">
-                        <div class="flex items-center gap-2 mb-1 border-b pb-2">
-                            <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold">1</span>
-                            <h3 class="text-sm font-semibold text-gray-700">ข้อมูลทั่วไป</h3>
+                    
+                    <!-- โซนค้นหาสถานที่ (ใหม่) -->
+                    <div class="p-3 bg-white border border-indigo-200 rounded-lg shadow-sm">
+                        <label class="block text-xs font-bold text-indigo-700 mb-1 flex items-center gap-1">
+                            <i class="ph ph-magnifying-glass"></i> ค้นหาสถานที่ (แนะนำ)
+                        </label>
+                        <div class="flex gap-2">
+                            <input type="text" id="searchKeyword" class="flex-1 border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="เช่น ฟิวเจอร์เวิลด์ ออดิโอ">
+                            <button onclick="searchLocation()" class="bg-indigo-600 text-white px-4 rounded-md font-medium hover:bg-indigo-700 transition flex items-center gap-1">
+                                ค้นหา
+                            </button>
                         </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 mb-1">ชื่อร้านค้า / ชื่อลูกค้า <span class="text-red-500">*</span></label>
-                            <input type="text" id="storeName" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="เช่น ร้านกะเพราป้าสมศรี">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 mb-1">เบอร์ติดต่อ (ทางเลือก)</label>
-                            <input type="tel" id="storePhone" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="เช่น 081-xxx-xxxx">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 mb-1">รายละเอียด / จุดสังเกต (ทางเลือก)</label>
-                            <textarea id="storeNote" rows="2" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="เช่น บ้านสีฟ้า ประตูรั้วสีแดง ซอย 5"></textarea>
-                        </div>
+                        <!-- จุดแสดงผลลัพธ์การค้นหา -->
+                        <div id="searchResults" class="mt-2 space-y-1 hidden max-h-40 overflow-y-auto no-scrollbar"></div>
                     </div>
 
-                    <!-- โซน 2: พิกัดแผนที่ -->
-                    <div class="p-3 bg-white border border-gray-200 rounded-lg space-y-3">
-                        <div class="flex items-center gap-2 mb-1 border-b pb-2">
-                            <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold">2</span>
-                            <h3 class="text-sm font-semibold text-gray-700">พิกัดจัดส่ง <span class="text-red-500">*</span></h3>
-                        </div>
+                    <div class="flex items-center gap-2">
+                        <hr class="flex-1 border-gray-300">
+                        <span class="text-xs text-gray-400 font-medium">หรือกำหนดเอง</span>
+                        <hr class="flex-1 border-gray-300">
+                    </div>
+
+                    <!-- โซนข้อมูลทั่วไป -->
+                    <div class="space-y-3">
                         <div>
-                            <label class="block text-xs font-medium text-gray-600 mb-1">ลิงก์ Google Maps</label>
-                            <div class="flex gap-2">
-                                <input type="text" id="storeLink" class="flex-1 border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="วางลิงก์จากแอปได้เลย">
-                            </div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">ชื่อร้านค้า / ลูกค้า <span class="text-red-500">*</span></label>
+                            <input type="text" id="storeName" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="ระบุชื่อสถานที่">
                         </div>
                         
-                        <div class="grid grid-cols-2 gap-2 mt-2">
-                            <button onclick="extractCoordsFromLink()" class="w-full py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 font-medium text-xs rounded-md hover:bg-indigo-100 transition flex items-center justify-center gap-1">
-                                <i id="btn-extract-icon" class="ph ph-link text-base"></i> 
-                                <span id="btn-extract-text">ดึงพิกัดจากลิงก์</span>
-                            </button>
-                            <button onclick="enableMapPicking()" class="w-full py-2 bg-blue-50 border border-blue-200 text-blue-700 font-medium text-xs rounded-md hover:bg-blue-100 transition flex items-center justify-center gap-1">
-                                <i class="ph ph-crosshair text-base"></i> ปักหมุดบนแผนที่
-                            </button>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">เบอร์ติดต่อ</label>
+                                <input type="tel" id="storePhone" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="081xxxxxxx">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">รายละเอียด/จุดสังเกต</label>
+                                <input type="text" id="storeNote" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="เช่น ซอย 5">
+                            </div>
                         </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">ลิงก์ Google Maps (ถ้ามี)</label>
+                            <input type="text" id="storeLink" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="วางลิงก์ไว้ให้คนขับกดเปิด">
+                        </div>
+                        
+                        <button onclick="enableMapPicking()" class="w-full py-2 bg-blue-50 border border-blue-200 text-blue-700 font-medium text-xs rounded-md hover:bg-blue-100 transition flex items-center justify-center gap-1">
+                            <i class="ph ph-crosshair text-base"></i> จิ้มปักหมุดบนแผนที่เอง
+                        </button>
 
                         <div class="flex gap-2 bg-gray-50 p-2 rounded border border-gray-100">
                             <div class="flex-1">
-                                <label class="block text-[10px] text-gray-400 uppercase tracking-wider">Lat</label>
-                                <input type="text" id="storeLat" readonly class="w-full bg-transparent text-gray-700 text-xs outline-none">
+                                <label class="block text-[10px] text-gray-400 uppercase tracking-wider">Lat (ละติจูด)</label>
+                                <input type="text" id="storeLat" readonly class="w-full bg-transparent text-gray-700 text-xs outline-none font-mono">
                             </div>
                             <div class="flex-1 border-l border-gray-200 pl-2">
-                                <label class="block text-[10px] text-gray-400 uppercase tracking-wider">Lon</label>
-                                <input type="text" id="storeLon" readonly class="w-full bg-transparent text-gray-700 text-xs outline-none">
+                                <label class="block text-[10px] text-gray-400 uppercase tracking-wider">Lon (ลองจิจูด)</label>
+                                <input type="text" id="storeLon" readonly class="w-full bg-transparent text-gray-700 text-xs outline-none font-mono">
                             </div>
                         </div>
                     </div>
@@ -176,6 +181,7 @@
     </main>
 
     <script>
+        const API_KEY = '6507d58aa4162fa33423059a71c9fc39';
         let map;
         let stores = JSON.parse(localStorage.getItem('delivery_stores')) || [];
         let routeQueue = [];
@@ -188,11 +194,19 @@
             renderStores();
             renderRouteAvailableStores();
             updateStoreCount();
+
+            // ค้นหาเมื่อกดปุ่ม Enter
+            document.getElementById("searchKeyword").addEventListener("keypress", function(event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    searchLocation();
+                }
+            });
         };
 
         function initMap() {
             if (typeof longdo === 'undefined') {
-                showToast('ไม่สามารถโหลด Longdo Map ได้ โปรดตรวจสอบอินเทอร์เน็ต', 'error');
+                showToast('ไม่สามารถโหลด Longdo Map ได้', 'error');
                 return;
             }
 
@@ -206,20 +220,69 @@
             map.Event.bind('click', function() {
                 if (isPickingLocation) {
                     let location = map.location(longdo.LocationMode.Pointer);
-                    document.getElementById('storeLat').value = location.lat.toFixed(6);
-                    document.getElementById('storeLon').value = location.lon.toFixed(6);
-
-                    if (tempMarker) map.Overlays.remove(tempMarker);
-                    tempMarker = new longdo.Marker(location, { title: 'ตำแหน่งที่เลือก' });
-                    map.Overlays.add(tempMarker);
-
+                    setCoordinates(location.lat, location.lon);
                     isPickingLocation = false;
                     document.getElementById('mapInstruction').classList.add('hidden');
-                    showToast('ดึงพิกัดเรียบร้อย');
+                    showToast('ปักหมุดสำเร็จ');
                 }
             });
 
             drawAllStoreMarkers();
+        }
+
+        // ฟังก์ชันกำหนดพิกัดและปักหมุดชั่วคราว
+        function setCoordinates(lat, lon, title = 'ตำแหน่งที่เลือก') {
+            document.getElementById('storeLat').value = lat.toFixed(6);
+            document.getElementById('storeLon').value = lon.toFixed(6);
+
+            if (tempMarker) map.Overlays.remove(tempMarker);
+            tempMarker = new longdo.Marker({lat: lat, lon: lon}, { title: title });
+            map.Overlays.add(tempMarker);
+            map.location({lat: lat, lon: lon}, true);
+            
+            if(window.innerWidth < 768) window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+
+        // --- ระบบค้นหาสถานที่ (Search API) ---
+        async function searchLocation() {
+            const keyword = document.getElementById('searchKeyword').value.trim();
+            const resultsContainer = document.getElementById('searchResults');
+            
+            if (!keyword) {
+                showToast('กรุณาพิมพ์ชื่อสถานที่ก่อนค้นหา', 'error');
+                return;
+            }
+
+            resultsContainer.innerHTML = '<div class="p-2 text-sm text-gray-500 text-center"><i class="ph ph-spinner animate-spin"></i> กำลังค้นหา...</div>';
+            resultsContainer.classList.remove('hidden');
+
+            try {
+                // เรียกใช้ Longdo Search API
+                const response = await fetch(`https://search.longdo.com/mapsearch/json/search?keyword=${encodeURIComponent(keyword)}&limit=5&key=${API_KEY}`);
+                const data = await response.json();
+
+                if (data && data.data && data.data.length > 0) {
+                    resultsContainer.innerHTML = data.data.map(place => `
+                        <div onclick="selectSearchResult('${place.name.replace(/'/g, "\\'")}', ${place.lat}, ${place.lon})" class="p-2 border-b border-gray-100 hover:bg-indigo-50 cursor-pointer transition rounded">
+                            <div class="font-medium text-sm text-gray-800">${place.name}</div>
+                            <div class="text-xs text-gray-500 truncate">${place.address || 'ไม่ระบุที่อยู่'}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    resultsContainer.innerHTML = '<div class="p-2 text-sm text-red-500 text-center">ไม่พบสถานที่นี้ ลองเปลี่ยนคำค้นหา</div>';
+                }
+            } catch (error) {
+                resultsContainer.innerHTML = '<div class="p-2 text-sm text-red-500 text-center">เกิดข้อผิดพลาดในการเชื่อมต่อ</div>';
+            }
+        }
+
+        // เมื่อผู้ใช้เลือกผลลัพธ์จากการค้นหา
+        function selectSearchResult(name, lat, lon) {
+            document.getElementById('storeName').value = name;
+            setCoordinates(lat, lon, name);
+            
+            document.getElementById('searchResults').classList.add('hidden');
+            showToast('ดึงข้อมูลสำเร็จ! กดบันทึกได้เลย');
         }
 
         function showToast(message, type = 'info') {
@@ -254,74 +317,10 @@
             }
         }
 
-        async function extractCoordsFromLink() {
-            const link = document.getElementById('storeLink').value.trim();
-            const btnText = document.getElementById('btn-extract-text');
-            const btnIcon = document.getElementById('btn-extract-icon');
-
-            if (!link) {
-                showToast('กรุณาวางลิงก์ Google Maps ก่อน', 'error');
-                return;
-            }
-
-            const applyCoords = (lat, lon) => {
-                document.getElementById('storeLat').value = lat.toFixed(6);
-                document.getElementById('storeLon').value = lon.toFixed(6);
-                
-                if (tempMarker) map.Overlays.remove(tempMarker);
-                tempMarker = new longdo.Marker({lat: lat, lon: lon});
-                map.Overlays.add(tempMarker);
-                map.location({lat: lat, lon: lon}, true);
-                
-                showToast('ดึงพิกัดสำเร็จ!');
-            };
-
-            let match = link.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-            if (match && match.length >= 3) {
-                applyCoords(parseFloat(match[1]), parseFloat(match[2]));
-                return;
-            }
-
-            if (link.includes('maps.app.goo.gl') || link.includes('goo.gl') || link.includes('g.page')) {
-                btnText.innerText = "กำลังแปลงลิงก์...";
-                btnIcon.className = "ph ph-spinner animate-spin";
-                
-                try {
-                    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(link)}`;
-                    const response = await fetch(proxyUrl);
-                    const data = await response.json();
-                    
-                    const finalUrl = (data.status && data.status.url) ? data.status.url : "";
-                    
-                    match = finalUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-                    if (match && match.length >= 3) {
-                        applyCoords(parseFloat(match[1]), parseFloat(match[2]));
-                    } else if (data.contents) {
-                        const metaMatch = data.contents.match(/center=(-?\d+\.\d+)%2C(-?\d+\.\d+)/) || 
-                                          data.contents.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-                        if (metaMatch && metaMatch.length >= 3) {
-                            applyCoords(parseFloat(metaMatch[1]), parseFloat(metaMatch[2]));
-                        } else {
-                            throw new Error("หาพิกัดไม่พบ");
-                        }
-                    } else {
-                        throw new Error("ไม่มีข้อมูลปลายทาง");
-                    }
-                } catch (error) {
-                    showToast('ดึงพิกัดไม่สำเร็จ กรุณาปักหมุดเองครับ', 'error');
-                } finally {
-                    btnText.innerText = "ดึงพิกัดจากลิงก์";
-                    btnIcon.className = "ph ph-link text-base";
-                }
-            } else {
-                showToast('ไม่พบพิกัดในลิงก์นี้ กรุณาปักหมุดเองครับ', 'error');
-            }
-        }
-
         function enableMapPicking() {
             isPickingLocation = true;
             document.getElementById('mapInstruction').classList.remove('hidden');
-            if (window.innerWidth < 768) showToast('เลื่อนลงไปที่แผนที่เพื่อปักหมุด');
+            if (window.innerWidth < 768) showToast('เลื่อนลงไปที่แผนที่เพื่อคลิกปักหมุด');
         }
 
         function cancelMapPicking() {
@@ -342,7 +341,7 @@
                 return;
             }
             if (!lat || !lon) {
-                showToast('กรุณาดึงพิกัดจากลิงก์หรือปักหมุด', 'error');
+                showToast('กรุณาค้นหาสถานที่ หรือ ปักหมุดก่อน', 'error');
                 return;
             }
 
@@ -360,6 +359,7 @@
             localStorage.setItem('delivery_stores', JSON.stringify(stores));
             
             // ล้างฟอร์ม
+            document.getElementById('searchKeyword').value = '';
             document.getElementById('storeName').value = '';
             document.getElementById('storePhone').value = '';
             document.getElementById('storeNote').value = '';
@@ -368,6 +368,7 @@
             document.getElementById('storeLon').value = '';
             if (tempMarker) map.Overlays.remove(tempMarker);
             tempMarker = null;
+            document.getElementById('searchResults').classList.add('hidden');
 
             showToast('บันทึกข้อมูลเรียบร้อย!');
             updateStoreCount();
@@ -394,7 +395,6 @@
             document.getElementById('storeCountBadge').innerText = stores.length;
         }
 
-        // จัดรูปแบบหน้าต่างข้อมูลบนหมุดแผนที่
         function generatePopupDetail(store) {
             let html = `<div class="longdo-popup"><h4>${store.name}</h4>`;
             if (store.phone) html += `<p><i class="ph ph-phone"></i> ${store.phone}</p>`;
