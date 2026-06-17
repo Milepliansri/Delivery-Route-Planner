@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 const Button = ({ children, className = '', variant = 'default', size = 'default', ...props }: any) => {
   const baseStyle = "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:pointer-events-none disabled:opacity-50";
   const variants: any = {
-    default: "bg-indigo-600 text-white hover:bg-indigo-700",
+    default: "bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm",
     outline: "border border-gray-200 bg-white hover:bg-gray-100 text-gray-900",
     ghost: "hover:bg-gray-100 hover:text-gray-900 text-gray-700"
   };
@@ -110,6 +110,10 @@ function LongdoMap({ className = '', initialCenter = { lat: 13.7563, lon: 100.50
         };
 
         if (onMapReady) onMapReady(map.current);
+        
+        // บังคับให้แผนที่จัดเรียงตัวเองใหม่เมื่อโหลดเสร็จ
+        setTimeout(() => map.current.resize(), 500);
+
       } catch (error) {
         console.error('Map init error:', error);
       }
@@ -332,7 +336,7 @@ export default function App() {
 
   const clearRoute = () => {
     if (routeQueue.length === 0) return;
-    if (confirm('ล้างเส้นทางทั้งหมดใช่หรือไม่?')) {
+    if (window.confirm('ล้างเส้นทางทั้งหมดใช่หรือไม่?')) {
       setRouteQueue([]);
       if (mapRef.current && mapRef.current.clearRoute) mapRef.current.clearRoute();
       toast.success('ล้างข้อมูลแล้ว');
@@ -355,6 +359,7 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-gray-50 font-sans">
       
+      {/* Toasts Container */}
       <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
         {toasts.map(t => (
           <div key={t.id} className={`px-4 py-3 rounded-lg shadow-lg text-white font-medium flex items-center gap-2 transform transition-all duration-300 ${t.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`}>
@@ -364,13 +369,38 @@ export default function App() {
         ))}
       </div>
 
-      <aside className="w-full md:w-[450px] bg-white shadow-2xl flex flex-col md:h-screen md:overflow-hidden z-10 shrink-0 border-r border-gray-200">
-        <div className="p-5 bg-gradient-to-r from-indigo-700 to-indigo-600 text-white flex justify-between items-center shadow-inner shrink-0">
+      {/* Map Area (บังคับความสูง 45vh บนมือถือ ให้พอดีกับการใช้งาน) */}
+      <main className="w-full h-[45vh] md:flex-1 md:h-screen relative bg-gray-200 order-first md:order-last shrink-0 z-0 border-b border-gray-300 md:border-none">
+        <LongdoMap
+          className="absolute inset-0 w-full h-full outline-none"
+          initialCenter={{ lat: 13.7563, lon: 100.5018 }}
+          initialZoom={13}
+          onMapReady={(map) => { mapRef.current = map; }}
+          onClick={(event) => {
+            if (isMapPickingMode) {
+              setStoreLat(event.lat.toFixed(6));
+              setStoreLon(event.lon.toFixed(6));
+              setIsMapPickingMode(false);
+              toast.success('พิกัดถูกตั้งแล้ว');
+            }
+          }}
+        />
+
+        {isMapPickingMode && (
+          <div className="absolute top-4 left-4 bg-blue-500 text-white px-4 py-2.5 rounded-lg shadow-lg z-40 flex items-center gap-2 animate-pulse font-medium">
+            <i className="ph-fill ph-crosshair text-xl"></i> คลิกบนแผนที่เพื่อตั้งค่าพิกัด
+          </div>
+        )}
+      </main>
+
+      {/* Sidebar / ควบคุมระบบ */}
+      <aside className="w-full md:w-[450px] bg-white shadow-2xl flex flex-col flex-1 md:h-screen md:overflow-hidden z-10 shrink-0 border-r border-gray-200">
+        <div className="p-4 md:p-5 bg-gradient-to-r from-indigo-700 to-indigo-600 text-white flex justify-between items-center shadow-inner shrink-0">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2 tracking-tight">
+            <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2 tracking-tight">
               <i className="ph-fill ph-map-trifold"></i> Route Planner Pro
             </h1>
-            <p className="text-sm text-indigo-100 mt-1 opacity-90">ระบบบริหารจุดจัดส่งและแกะพิกัดอัจฉริยะ</p>
+            <p className="text-xs md:text-sm text-indigo-100 mt-1 opacity-90">ระบบบริหารจุดจัดส่งและแกะพิกัดอัจฉริยะ</p>
           </div>
         </div>
 
@@ -383,15 +413,15 @@ export default function App() {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-6 bg-gray-50/50">
+        <div className="flex-1 overflow-y-auto p-4 md:p-5 flex flex-col gap-6 bg-gray-50/50 pb-24 md:pb-5">
           {activeTab === 'stores' ? (
             <>
-              <Card className="p-5 shadow-sm">
+              <Card className="p-4 md:p-5 shadow-sm">
                 <h2 className="font-bold mb-4 flex items-center gap-2 text-indigo-700 text-lg">
                   <i className="ph-fill ph-map-pin-plus"></i> เพิ่มจุดส่งสินค้าใหม่
                 </h2>
                 <div className="space-y-4">
-                  <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-lg">
+                  <div className="p-3.5 bg-indigo-50/50 border border-indigo-100 rounded-lg">
                     <label className="block text-sm font-bold text-indigo-800 mb-2 flex items-center gap-1.5">
                       <i className="ph-bold ph-link text-indigo-600"></i> วางลิงก์ Google Maps เพื่อดึงพิกัด
                     </label>
@@ -424,7 +454,7 @@ export default function App() {
                     </div>
 
                     <Button onClick={() => setIsMapPickingMode(!isMapPickingMode)} variant="outline" className={`w-full font-semibold gap-2 ${isMapPickingMode ? 'bg-blue-50 border-blue-400 text-blue-700 ring-2 ring-blue-200' : 'border-blue-200 text-blue-700'}`}>
-                      <i className="ph-bold ph-crosshair text-lg"></i> {isMapPickingMode ? 'กำลังเลือกจุดบนแผนที่ (คลิกที่แผนที่)' : 'จิ้มเลือกลงบนแผนที่ด้วยตัวเอง'}
+                      <i className="ph-bold ph-crosshair text-lg"></i> {isMapPickingMode ? 'กำลังเลือกจุดบนแผนที่ (คลิกที่แผนที่ด้านบน)' : 'จิ้มเลือกลงบนแผนที่ด้วยตัวเอง'}
                     </Button>
 
                     <div className="flex gap-2 bg-gray-100 p-2.5 rounded-md border border-gray-200 shadow-inner">
@@ -558,29 +588,6 @@ export default function App() {
           )}
         </div>
       </aside>
-
-      <main className="flex-1 relative min-h-[500px] md:h-screen bg-gray-300 order-first md:order-last">
-        <LongdoMap
-          className="w-full h-full"
-          initialCenter={{ lat: 13.7563, lon: 100.5018 }}
-          initialZoom={13}
-          onMapReady={(map) => { mapRef.current = map; }}
-          onClick={(event) => {
-            if (isMapPickingMode) {
-              setStoreLat(event.lat.toFixed(6));
-              setStoreLon(event.lon.toFixed(6));
-              setIsMapPickingMode(false);
-              toast.success('พิกัดถูกตั้งแล้ว');
-            }
-          }}
-        />
-
-        {isMapPickingMode && (
-          <div className="absolute top-4 left-4 bg-blue-500 text-white px-4 py-2.5 rounded-lg shadow-lg z-40 flex items-center gap-2 animate-pulse font-medium">
-            <i className="ph-fill ph-crosshair text-xl"></i> คลิกบนแผนที่เพื่อตั้งค่าพิกัด
-          </div>
-        )}
-      </main>
 
     </div>
   );
