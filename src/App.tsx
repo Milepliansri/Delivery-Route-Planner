@@ -5,7 +5,8 @@ const Button = ({ children, className = '', variant = 'default', size = 'default
   const variants: any = {
     default: "bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm",
     outline: "border border-gray-200 bg-white hover:bg-gray-100 text-gray-900",
-    ghost: "hover:bg-gray-100 hover:text-gray-900 text-gray-700"
+    ghost: "hover:bg-gray-100 hover:text-gray-900 text-gray-700",
+    danger: "bg-red-500 text-white hover:bg-red-600 shadow-sm"
   };
   const sizes: any = {
     default: "h-10 px-4 py-2",
@@ -111,7 +112,6 @@ function LongdoMap({ className = '', initialCenter = { lat: 13.7563, lon: 100.50
 
         if (onMapReady) onMapReady(map.current);
         
-        // บังคับให้แผนที่จัดเรียงตัวเองใหม่เมื่อโหลดเสร็จ
         setTimeout(() => map.current.resize(), 500);
 
       } catch (error) {
@@ -192,6 +192,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'stores' | 'route'>('stores');
   const [searchInput, setSearchInput] = useState('');
   const [isMapPickingMode, setIsMapPickingMode] = useState(false);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
 
   useEffect(() => { localStorage.setItem('delivery_stores', JSON.stringify(stores)); }, [stores]);
   useEffect(() => { localStorage.setItem('delivery_route', JSON.stringify(routeQueue)); }, [routeQueue]);
@@ -328,6 +329,7 @@ export default function App() {
       if (mapRef.current.drawRoute) {
         mapRef.current.drawRoute(routeCoords);
       }
+      setIsPanelOpen(false);
       toast.success('กำลังวาดเส้นทางบนแผนที่... 🚚');
     } catch (error) {
       toast.error('เกิดข้อผิดพลาดในการคำนวณเส้นทาง');
@@ -344,9 +346,16 @@ export default function App() {
   };
 
   const focusMap = (lat: number, lon: number) => {
+    setIsPanelOpen(false);
     if (mapRef.current && mapRef.current.focusLocation) {
       mapRef.current.focusLocation(lat, lon, 16);
     }
+  };
+
+  const startPickingMode = () => {
+    setIsMapPickingMode(true);
+    setIsPanelOpen(false);
+    toast.success('เลื่อนแผนที่และคลิกเพื่อเลือกจุด');
   };
 
   const availableStores = stores.filter(
@@ -357,10 +366,9 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-gray-50 font-sans">
+    <div className="relative w-full h-screen bg-gray-200 overflow-hidden font-sans">
       
-      {/* Toasts Container */}
-      <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
+      <div className="fixed top-4 right-4 z-[70] flex flex-col gap-2">
         {toasts.map(t => (
           <div key={t.id} className={`px-4 py-3 rounded-lg shadow-lg text-white font-medium flex items-center gap-2 transform transition-all duration-300 ${t.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`}>
             <i className={`ph-bold ${t.type === 'success' ? 'ph-check-circle' : 'ph-warning-circle'} text-xl`}></i>
@@ -369,10 +377,206 @@ export default function App() {
         ))}
       </div>
 
-      {/* Map Area (บังคับความสูง 45vh บนมือถือ ให้พอดีกับการใช้งาน) */}
-      <main className="w-full h-[45vh] md:flex-1 md:h-screen relative bg-gray-200 order-first md:order-last shrink-0 z-0 border-b border-gray-300 md:border-none">
+      <div className="absolute top-4 left-4 z-20 bg-white/90 backdrop-blur-md px-4 py-3 rounded-2xl shadow-lg border border-white/50">
+        <h1 className="text-xl font-bold flex items-center gap-2 text-indigo-700 tracking-tight">
+          <i className="ph-fill ph-map-trifold text-2xl"></i> Route Planner Pro
+        </h1>
+      </div>
+
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-3 bg-white/90 backdrop-blur-xl p-2.5 rounded-full shadow-2xl border border-white">
+        <Button onClick={() => {setActiveTab('stores'); setIsPanelOpen(true);}} className="rounded-full px-5 py-6 text-base shadow-md gap-2 font-bold bg-indigo-600">
+          <i className="ph-bold ph-storefront text-xl"></i> ฐานข้อมูล
+        </Button>
+        <Button onClick={() => {setActiveTab('route'); setIsPanelOpen(true);}} className="rounded-full px-5 py-6 text-base shadow-md gap-2 font-bold bg-emerald-600 hover:bg-emerald-700">
+          <i className="ph-bold ph-routing text-xl"></i> จัดเส้นทาง
+        </Button>
+      </div>
+
+      {isMapPickingMode && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-5 py-3 rounded-full shadow-2xl z-40 flex items-center gap-2 animate-pulse font-bold border-2 border-white">
+          <i className="ph-bold ph-crosshair text-2xl"></i> คลิกบนแผนที่เพื่อระบุพิกัด
+        </div>
+      )}
+
+      {isPanelOpen && (
+        <div className="absolute inset-0 z-50 flex items-end md:items-center justify-center bg-slate-900/40 backdrop-blur-sm p-0 md:p-6 transition-all duration-300">
+          
+          <div className="w-full md:w-[500px] h-[85vh] md:h-[80vh] bg-gray-50 md:rounded-3xl rounded-t-3xl shadow-2xl flex flex-col overflow-hidden border border-white/50">
+            
+            <div className="p-4 bg-white flex justify-between items-center border-b border-gray-100 shrink-0">
+              <div className="flex bg-gray-100 p-1 rounded-xl gap-1">
+                <button onClick={() => setActiveTab('stores')} className={`px-4 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2 ${activeTab === 'stores' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-indigo-600'}`}>
+                  <i className="ph-bold ph-storefront text-lg"></i> เพิ่ม/ลบ ร้านค้า
+                </button>
+                <button onClick={() => setActiveTab('route')} className={`px-4 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2 ${activeTab === 'route' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500 hover:text-emerald-600'}`}>
+                  <i className="ph-bold ph-routing text-lg"></i> ลำดับคิวส่ง
+                </button>
+              </div>
+              <button onClick={() => setIsPanelOpen(false)} className="w-10 h-10 rounded-full bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-600 flex items-center justify-center transition-colors">
+                <i className="ph-bold ph-x text-xl"></i>
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 md:p-5 flex flex-col gap-5 pb-8">
+              {activeTab === 'stores' ? (
+                <>
+                  <Card className="p-4 md:p-5 shadow-sm border-0 ring-1 ring-gray-100">
+                    <h2 className="font-bold mb-4 flex items-center gap-2 text-indigo-700 text-lg">
+                      <i className="ph-fill ph-map-pin-plus"></i> เพิ่มจุดส่งสินค้าใหม่
+                    </h2>
+                    <div className="space-y-4">
+                      <div className="p-3.5 bg-indigo-50/50 border border-indigo-100 rounded-xl">
+                        <label className="block text-sm font-bold text-indigo-800 mb-2 flex items-center gap-1.5">
+                          <i className="ph-bold ph-link text-indigo-600"></i> วางลิงก์ Google Maps
+                        </label>
+                        <div className="flex flex-col gap-2">
+                          <Input value={storeLink} onChange={(e: any) => setStoreLink(e.target.value)} placeholder="https://maps.app.goo.gl/..." />
+                          <Button onClick={extractCoordsFromLink} className="w-full gap-2 font-bold">
+                            <i className="ph-bold ph-magic-wand text-lg"></i> ดึงพิกัด
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 py-1">
+                        <hr className="flex-1 border-gray-200" /><span className="text-xs text-gray-400 font-semibold tracking-wider">หรือ</span><hr className="flex-1 border-gray-200" />
+                      </div>
+
+                      <Button onClick={startPickingMode} variant="outline" className="w-full font-bold gap-2 py-6 border-2 border-dashed border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100">
+                        <i className="ph-bold ph-crosshair text-xl"></i> จิ้มเลือกลงบนแผนที่ด้วยตัวเอง
+                      </Button>
+
+                      <div className="space-y-3 pt-2">
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1.5">ชื่อลูกค้า / ร้านค้า <span className="text-red-500">*</span></label>
+                          <Input value={storeName} onChange={(e: any) => setStoreName(e.target.value)} placeholder="ระบุชื่อสถานที่" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1.5">เบอร์โทร</label>
+                            <Input value={storePhone} onChange={(e: any) => setStorePhone(e.target.value)} placeholder="08x-xxx-xxxx" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-600 mb-1.5">รายละเอียด</label>
+                            <Input value={storeNote} onChange={(e: any) => setStoreNote(e.target.value)} placeholder="จุดสังเกต" />
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 bg-gray-100 p-2.5 rounded-lg shadow-inner">
+                          <div className="flex-1">
+                            <label className="block text-[10px] text-gray-500 font-bold uppercase mb-0.5">Lat</label>
+                            <input type="text" value={storeLat} readOnly className="w-full bg-transparent text-gray-800 text-sm outline-none font-mono" />
+                          </div>
+                          <div className="flex-1 border-l border-gray-300 pl-3">
+                            <label className="block text-[10px] text-gray-500 font-bold uppercase mb-0.5">Lon</label>
+                            <input type="text" value={storeLon} readOnly className="w-full bg-transparent text-gray-800 text-sm outline-none font-mono" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <Button onClick={saveStore} className="w-full py-6 mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-base rounded-xl shadow-lg gap-2">
+                        <i className="ph-bold ph-floppy-disk text-xl"></i> บันทึกข้อมูล
+                      </Button>
+                    </div>
+                  </Card>
+
+                  <div>
+                    <h2 className="font-bold mb-3 text-gray-700 flex items-center justify-between text-base px-1">
+                      <span>ร้านค้าในระบบ</span>
+                      <span className="bg-gray-200 text-gray-700 text-xs font-bold px-3 py-1 rounded-full">{stores.length}</span>
+                    </h2>
+                    <div className="space-y-2">
+                      {stores.length === 0 ? (
+                        <div className="text-sm text-gray-400 text-center py-6 bg-white rounded-xl">ยังไม่มีข้อมูล</div>
+                      ) : (
+                        stores.map((store) => (
+                          <Card key={store.id} className="p-3 hover:shadow-md transition-shadow border-0 ring-1 ring-gray-100">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex-1 cursor-pointer" onClick={() => focusMap(store.lat, store.lon)}>
+                                <div className="text-sm font-bold text-gray-800">{store.name}</div>
+                                <div className="text-xs text-gray-500 mt-0.5">{store.phone || 'ไม่มีเบอร์โทร'}</div>
+                              </div>
+                              <Button onClick={() => deleteStore(store.id)} size="icon" variant="ghost" className="h-8 w-8 text-red-500 hover:bg-red-50 rounded-full shrink-0">
+                                <i className="ph-bold ph-trash"></i>
+                              </Button>
+                            </div>
+                          </Card>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Card className="p-4 shadow-sm border-0 ring-1 ring-gray-100 shrink-0">
+                    <h2 className="font-bold text-gray-800 mb-3 flex items-center gap-2 text-base">
+                      <i className="ph-fill ph-magnifying-glass text-emerald-600"></i> ค้นหาร้านที่ต้องการไปส่ง
+                    </h2>
+                    <Input value={searchInput} onChange={(e: any) => setSearchInput(e.target.value)} placeholder="พิมพ์ชื่อร้าน..." className="mb-3 bg-gray-50" />
+                    <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                      {availableStores.length === 0 ? (
+                        <div className="text-xs text-gray-400 w-full text-center py-2">ไม่มีร้านที่ตรงกับการค้นหา</div>
+                      ) : (
+                        availableStores.map((store) => (
+                          <Button key={store.id} onClick={() => addToRoute(store.id)} size="sm" variant="outline" className="gap-1 text-gray-700 bg-white">
+                            <i className="ph-bold ph-plus"></i> <span className="truncate max-w-[120px]">{store.name}</span>
+                          </Button>
+                        ))
+                      )}
+                    </div>
+                  </Card>
+
+                  <Card className="flex-1 flex flex-col shadow-sm overflow-hidden border-0 ring-1 ring-emerald-500/20">
+                    <div className="p-3 border-b border-gray-100 bg-emerald-50/50 flex justify-between items-center shrink-0">
+                      <h2 className="font-bold text-emerald-800 flex items-center gap-2 text-sm">
+                        <i className="ph-fill ph-list-numbers text-lg"></i> ลำดับคิวส่ง ({routeQueue.length})
+                      </h2>
+                    </div>
+
+                    <div className="flex-1 space-y-2 p-3 overflow-y-auto min-h-[200px] bg-slate-50/50">
+                      {routeQueue.length === 0 ? (
+                        <div className="text-sm text-gray-400 text-center mt-8">ยังไม่ได้เลือกจุดส่งสินค้า</div>
+                      ) : (
+                        routeQueue.map((id, index) => {
+                          const store = stores.find((s) => s.id === id);
+                          if (!store) return null;
+                          return (
+                            <div key={id} className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl p-2 shadow-sm">
+                              <div className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shrink-0">{index + 1}</div>
+                              <div className="flex-1 overflow-hidden cursor-pointer" onClick={() => focusMap(store.lat, store.lon)}>
+                                <div className="text-sm font-bold text-gray-800 truncate">{store.name}</div>
+                              </div>
+                              <div className="flex gap-1 border-r border-gray-100 pr-1">
+                                <button onClick={() => moveRouteUp(index)} disabled={index === 0} className="text-gray-400 hover:text-emerald-600 disabled:opacity-20"><i className="ph-bold ph-caret-up text-lg"></i></button>
+                                <button onClick={() => moveRouteDown(index)} disabled={index === routeQueue.length - 1} className="text-gray-400 hover:text-emerald-600 disabled:opacity-20"><i className="ph-bold ph-caret-down text-lg"></i></button>
+                              </div>
+                              <button onClick={() => removeFromRoute(id)} className="text-red-400 hover:text-red-600 p-1"><i className="ph-bold ph-x text-lg"></i></button>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    <div className="p-2 border-t border-gray-100 bg-white grid grid-cols-3 gap-2 shrink-0">
+                      <Button onClick={reverseRoute} size="sm" variant="outline" className="text-xs bg-gray-50"><i className="ph-bold ph-arrows-down-up mr-1"></i> สลับ</Button>
+                      <Button onClick={copyRoute} size="sm" variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200"><i className="ph-bold ph-copy mr-1"></i> ก๊อปปี้</Button>
+                      <Button onClick={clearRoute} size="sm" variant="outline" className="text-xs bg-red-50 text-red-600 border-red-200"><i className="ph-bold ph-trash mr-1"></i> ล้าง</Button>
+                    </div>
+                    <div className="p-3 pt-0 bg-white shrink-0 mt-2">
+                      <Button onClick={calculateRoute} className="w-full py-5 text-base gap-2 font-bold bg-emerald-600 hover:bg-emerald-700 shadow-lg rounded-xl">
+                        <i className="ph-fill ph-path text-xl"></i> วาดเส้นทางบนแผนที่
+                      </Button>
+                    </div>
+                  </Card>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <main className="absolute inset-0 z-0">
         <LongdoMap
-          className="absolute inset-0 w-full h-full outline-none"
+          className="w-full h-full outline-none"
           initialCenter={{ lat: 13.7563, lon: 100.5018 }}
           initialZoom={13}
           onMapReady={(map) => { mapRef.current = map; }}
@@ -381,213 +585,12 @@ export default function App() {
               setStoreLat(event.lat.toFixed(6));
               setStoreLon(event.lon.toFixed(6));
               setIsMapPickingMode(false);
+              setIsPanelOpen(true);
               toast.success('พิกัดถูกตั้งแล้ว');
             }
           }}
         />
-
-        {isMapPickingMode && (
-          <div className="absolute top-4 left-4 bg-blue-500 text-white px-4 py-2.5 rounded-lg shadow-lg z-40 flex items-center gap-2 animate-pulse font-medium">
-            <i className="ph-fill ph-crosshair text-xl"></i> คลิกบนแผนที่เพื่อตั้งค่าพิกัด
-          </div>
-        )}
       </main>
-
-      {/* Sidebar / ควบคุมระบบ */}
-      <aside className="w-full md:w-[450px] bg-white shadow-2xl flex flex-col flex-1 md:h-screen md:overflow-hidden z-10 shrink-0 border-r border-gray-200">
-        <div className="p-4 md:p-5 bg-gradient-to-r from-indigo-700 to-indigo-600 text-white flex justify-between items-center shadow-inner shrink-0">
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2 tracking-tight">
-              <i className="ph-fill ph-map-trifold"></i> Route Planner Pro
-            </h1>
-            <p className="text-xs md:text-sm text-indigo-100 mt-1 opacity-90">ระบบบริหารจุดจัดส่งและแกะพิกัดอัจฉริยะ</p>
-          </div>
-        </div>
-
-        <div className="flex border-b border-gray-200 bg-gray-50 shrink-0 shadow-sm">
-          <button onClick={() => setActiveTab('stores')} className={`flex-1 py-3.5 font-bold text-sm transition-all flex justify-center items-center gap-2 border-b-[3px] ${activeTab === 'stores' ? 'text-indigo-700 bg-indigo-50 border-indigo-600' : 'text-gray-500 hover:text-indigo-600 hover:bg-gray-100 border-transparent'}`}>
-            <i className="ph-bold ph-storefront text-lg"></i> ฐานข้อมูลร้านค้า
-          </button>
-          <button onClick={() => setActiveTab('route')} className={`flex-1 py-3.5 font-bold text-sm transition-all flex justify-center items-center gap-2 border-b-[3px] ${activeTab === 'route' ? 'text-indigo-700 bg-indigo-50 border-indigo-600' : 'text-gray-500 hover:text-indigo-600 hover:bg-gray-100 border-transparent'}`}>
-            <i className="ph-bold ph-routing text-lg"></i> จัดเส้นทางส่งของ
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-4 md:p-5 flex flex-col gap-6 bg-gray-50/50 pb-24 md:pb-5">
-          {activeTab === 'stores' ? (
-            <>
-              <Card className="p-4 md:p-5 shadow-sm">
-                <h2 className="font-bold mb-4 flex items-center gap-2 text-indigo-700 text-lg">
-                  <i className="ph-fill ph-map-pin-plus"></i> เพิ่มจุดส่งสินค้าใหม่
-                </h2>
-                <div className="space-y-4">
-                  <div className="p-3.5 bg-indigo-50/50 border border-indigo-100 rounded-lg">
-                    <label className="block text-sm font-bold text-indigo-800 mb-2 flex items-center gap-1.5">
-                      <i className="ph-bold ph-link text-indigo-600"></i> วางลิงก์ Google Maps เพื่อดึงพิกัด
-                    </label>
-                    <div className="flex flex-col gap-2">
-                      <Input value={storeLink} onChange={(e: any) => setStoreLink(e.target.value)} placeholder="เช่น https://maps.app.goo.gl/..." />
-                      <Button onClick={extractCoordsFromLink} className="w-full gap-2 font-bold">
-                        <i className="ph-bold ph-magic-wand text-lg"></i> ถอดรหัสพิกัดอัตโนมัติ
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 py-1">
-                    <hr className="flex-1 border-gray-300" /><span className="text-xs text-gray-400 font-semibold tracking-wider">หรือกรอกข้อมูลเอง</span><hr className="flex-1 border-gray-300" />
-                  </div>
-
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1.5">ชื่อลูกค้า / ร้านค้า <span className="text-red-500">*</span></label>
-                      <Input value={storeName} onChange={(e: any) => setStoreName(e.target.value)} placeholder="ระบุชื่อสถานที่" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1.5">เบอร์โทรติดต่อ</label>
-                        <Input value={storePhone} onChange={(e: any) => setStorePhone(e.target.value)} placeholder="08x-xxx-xxxx" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1.5">รายละเอียด</label>
-                        <Input value={storeNote} onChange={(e: any) => setStoreNote(e.target.value)} placeholder="จุดสังเกต" />
-                      </div>
-                    </div>
-
-                    <Button onClick={() => setIsMapPickingMode(!isMapPickingMode)} variant="outline" className={`w-full font-semibold gap-2 ${isMapPickingMode ? 'bg-blue-50 border-blue-400 text-blue-700 ring-2 ring-blue-200' : 'border-blue-200 text-blue-700'}`}>
-                      <i className="ph-bold ph-crosshair text-lg"></i> {isMapPickingMode ? 'กำลังเลือกจุดบนแผนที่ (คลิกที่แผนที่ด้านบน)' : 'จิ้มเลือกลงบนแผนที่ด้วยตัวเอง'}
-                    </Button>
-
-                    <div className="flex gap-2 bg-gray-100 p-2.5 rounded-md border border-gray-200 shadow-inner">
-                      <div className="flex-1">
-                        <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-0.5">Lat</label>
-                        <input type="text" value={storeLat} readOnly className="w-full bg-transparent text-gray-800 text-sm outline-none font-mono" />
-                      </div>
-                      <div className="flex-1 border-l border-gray-300 pl-3">
-                        <label className="block text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-0.5">Lon</label>
-                        <input type="text" value={storeLon} readOnly className="w-full bg-transparent text-gray-800 text-sm outline-none font-mono" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <Button onClick={saveStore} className="w-full py-6 mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base rounded-lg shadow-lg gap-2">
-                    <i className="ph-bold ph-floppy-disk text-xl"></i> บันทึกข้อมูลลงฐานข้อมูล
-                  </Button>
-                </div>
-              </Card>
-
-              <div>
-                <h2 className="font-bold mb-3 text-gray-700 flex items-center justify-between text-lg px-1">
-                  <span>รายชื่อจุดจัดส่งในระบบ</span>
-                  <span className="bg-indigo-100 text-indigo-700 text-sm font-bold px-3 py-1 rounded-full shadow-sm">{stores.length}</span>
-                </h2>
-                <div className="space-y-3 pb-6">
-                  {stores.length === 0 ? (
-                    <div className="text-sm text-gray-400 text-center py-8 border-2 border-dashed border-gray-200 rounded-xl bg-white">
-                      <i className="ph ph-package text-4xl mb-2 text-gray-300 block"></i>ยังไม่มีข้อมูลร้านค้า
-                    </div>
-                  ) : (
-                    stores.map((store) => (
-                      <Card key={store.id} className="p-3 hover:shadow-md transition-shadow">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 cursor-pointer hover:text-indigo-700 transition-colors" onClick={() => focusMap(store.lat, store.lon)}>
-                            <div className="text-sm font-bold text-gray-800">{store.name}</div>
-                            <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
-                              {store.phone && <span className="flex items-center gap-1"><i className="ph-fill ph-phone text-indigo-400"></i>{store.phone}</span>}
-                              {store.note && <span className="text-orange-500">{store.note}</span>}
-                            </div>
-                          </div>
-                          <Button onClick={() => deleteStore(store.id)} size="icon" variant="ghost" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full">
-                            <i className="ph-bold ph-trash"></i>
-                          </Button>
-                        </div>
-                      </Card>
-                    ))
-                  )}
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              <Card className="p-4 shadow-sm">
-                <h2 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
-                  <i className="ph-fill ph-magnifying-glass text-indigo-600 text-lg"></i> ค้นหาเพื่อเพิ่มเข้าเส้นทาง
-                </h2>
-                <div className="relative mb-3">
-                  <i className="ph-bold ph-magnifying-glass absolute left-3 top-3 text-gray-400 text-lg"></i>
-                  <Input value={searchInput} onChange={(e: any) => setSearchInput(e.target.value)} placeholder="พิมพ์ชื่อร้านเพื่อค้นหา..." className="pl-10" />
-                </div>
-                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-1">
-                  {availableStores.length === 0 ? (
-                    <div className="text-xs text-gray-400 w-full text-center py-3 bg-gray-50 rounded border border-gray-100">ไม่มีร้านที่ตรงกับการค้นหา</div>
-                  ) : (
-                    availableStores.map((store) => (
-                      <Button key={store.id} onClick={() => addToRoute(store.id)} size="sm" variant="outline" className="gap-1.5 shrink-0 text-gray-700 border-gray-300 hover:border-indigo-600 hover:text-indigo-700 hover:bg-indigo-50">
-                        <i className="ph-fill ph-plus-circle text-indigo-500"></i> <span className="truncate max-w-[140px]">{store.name}</span>
-                      </Button>
-                    ))
-                  )}
-                </div>
-              </Card>
-
-              <Card className="flex-1 flex flex-col shadow-sm overflow-hidden border-indigo-100">
-                <div className="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center shrink-0">
-                  <h2 className="font-bold text-gray-800 flex items-center gap-2">
-                    <i className="ph-fill ph-list-numbers text-indigo-600 text-xl"></i> ลำดับคิวจัดส่ง
-                  </h2>
-                  <span className="text-xs font-bold bg-indigo-600 text-white px-2 py-1 rounded-full">{routeQueue.length} จุด</span>
-                </div>
-
-                <div className="flex-1 space-y-2 p-3 overflow-y-auto min-h-[200px] bg-slate-50">
-                  {routeQueue.length === 0 ? (
-                    <div className="text-sm text-gray-400 text-center mt-12 py-8 border-2 border-dashed border-gray-200 rounded-xl bg-white">
-                      <i className="ph ph-truck text-5xl mb-2 text-gray-200 block"></i>
-                      ยังไม่ได้เลือกจุดส่งสินค้า
-                    </div>
-                  ) : (
-                    routeQueue.map((id, index) => {
-                      const store = stores.find((s) => s.id === id);
-                      if (!store) return null;
-                      return (
-                        <div key={id} className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl p-2.5 shadow-sm hover:border-indigo-300 transition-colors group">
-                          <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-sm font-bold shrink-0">{index + 1}</div>
-                          <div className="flex-1 overflow-hidden cursor-pointer" onClick={() => focusMap(store.lat, store.lon)}>
-                            <div className="text-sm font-bold text-gray-800 truncate group-hover:text-indigo-700">{store.name}</div>
-                            {store.phone && <div className="text-xs text-gray-500 mt-0.5 truncate">{store.phone}</div>}
-                          </div>
-                          <div className="flex flex-col gap-1 pr-2 border-r border-gray-100">
-                            <button onClick={() => moveRouteUp(index)} disabled={index === 0} className="text-gray-400 hover:text-indigo-600 disabled:opacity-20"><i className="ph-bold ph-caret-up text-lg"></i></button>
-                            <button onClick={() => moveRouteDown(index)} disabled={index === routeQueue.length - 1} className="text-gray-400 hover:text-indigo-600 disabled:opacity-20"><i className="ph-bold ph-caret-down text-lg"></i></button>
-                          </div>
-                          <Button onClick={() => removeFromRoute(id)} size="icon" variant="ghost" className="h-8 w-8 text-red-400 hover:text-white hover:bg-red-500 rounded-full">
-                            <i className="ph-bold ph-minus text-lg"></i>
-                          </Button>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-
-                <div className="p-3 border-t border-gray-100 bg-white grid grid-cols-3 gap-2 shrink-0">
-                  <Button onClick={reverseRoute} size="sm" variant="outline" className="h-auto py-2 flex flex-col gap-1 text-xs">
-                    <i className="ph-bold ph-arrows-down-up text-lg"></i> สลับไป-กลับ
-                  </Button>
-                  <Button onClick={copyRoute} size="sm" variant="outline" className="h-auto py-2 flex flex-col gap-1 text-xs text-blue-700 border-blue-200 hover:bg-blue-50">
-                    <i className="ph-bold ph-copy text-lg"></i> คัดลอก
-                  </Button>
-                  <Button onClick={clearRoute} size="sm" variant="outline" className="h-auto py-2 flex flex-col gap-1 text-xs text-red-600 border-red-200 hover:bg-red-50">
-                    <i className="ph-bold ph-trash text-lg"></i> ล้าง
-                  </Button>
-                </div>
-                <div className="p-3 pt-0 bg-white shrink-0">
-                  <Button onClick={calculateRoute} className="w-full py-6 text-base gap-2 font-bold shadow-md">
-                    <i className="ph-fill ph-path text-xl"></i> คำนวณเส้นทางและวาดแผนที่
-                  </Button>
-                </div>
-              </Card>
-            </>
-          )}
-        </div>
-      </aside>
 
     </div>
   );
