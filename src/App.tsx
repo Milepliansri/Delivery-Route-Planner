@@ -1,14 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-// --- MOCK UI COMPONENTS ---
-const Button = ({ children, className = '', variant = 'default', size = 'default', ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: string, size?: string }) => {
+const Button = ({ children, className = '', variant = 'default', size = 'default', ...props }: any) => {
   const baseStyle = "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:pointer-events-none disabled:opacity-50";
-  const variants: Record<string, string> = {
+  const variants: any = {
     default: "bg-indigo-600 text-white hover:bg-indigo-700",
     outline: "border border-gray-200 bg-white hover:bg-gray-100 text-gray-900",
     ghost: "hover:bg-gray-100 hover:text-gray-900 text-gray-700"
   };
-  const sizes: Record<string, string> = {
+  const sizes: any = {
     default: "h-10 px-4 py-2",
     sm: "h-9 rounded-md px-3",
     icon: "h-10 w-10"
@@ -20,7 +19,7 @@ const Button = ({ children, className = '', variant = 'default', size = 'default
   );
 };
 
-const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(({ className = '', ...props }, ref) => (
+const Input = React.forwardRef(({ className = '', ...props }: any, ref) => (
   <input
     ref={ref}
     className={`flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
@@ -29,13 +28,12 @@ const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLI
 ));
 Input.displayName = "Input";
 
-const Card = ({ children, className = '' }: { children: React.ReactNode, className?: string }) => (
+const Card = ({ children, className = '' }: any) => (
   <div className={`rounded-xl border border-gray-200 bg-white text-gray-950 shadow-sm ${className}`}>
     {children}
   </div>
 );
 
-// --- LONGDO MAP COMPONENT ---
 interface LongdoMapProps {
   className?: string;
   initialCenter?: { lat: number; lon: number };
@@ -45,7 +43,7 @@ interface LongdoMapProps {
 }
 
 function LongdoMap({ className = '', initialCenter = { lat: 13.7563, lon: 100.5018 }, initialZoom = 13, onMapReady, onClick }: LongdoMapProps) {
-  const mapId = useRef(`longdo-map-${Math.random().toString(36).substring(2, 9)}`).current;
+  const mapId = useRef(`longdo-map-${Math.random().toString(36).substr(2, 9)}`).current;
   const map = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const routePolylineRef = useRef<any>(null);
@@ -138,7 +136,6 @@ function LongdoMap({ className = '', initialCenter = { lat: 13.7563, lon: 100.50
   return <div id={mapId} className={`w-full h-full ${className}`} />;
 }
 
-// --- MAIN APP COMPONENT ---
 interface Store {
   id: string;
   name: string;
@@ -335,7 +332,7 @@ export default function App() {
 
   const clearRoute = () => {
     if (routeQueue.length === 0) return;
-    if (window.confirm('ล้างเส้นทางทั้งหมดใช่หรือไม่?')) {
+    if (confirm('ล้างเส้นทางทั้งหมดใช่หรือไม่?')) {
       setRouteQueue([]);
       if (mapRef.current && mapRef.current.clearRoute) mapRef.current.clearRoute();
       toast.success('ล้างข้อมูลแล้ว');
@@ -358,7 +355,6 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-gray-50 font-sans">
       
-      {/* Toasts Container */}
       <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
         {toasts.map(t => (
           <div key={t.id} className={`px-4 py-3 rounded-lg shadow-lg text-white font-medium flex items-center gap-2 transform transition-all duration-300 ${t.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`}>
@@ -368,7 +364,6 @@ export default function App() {
         ))}
       </div>
 
-      {/* Sidebar */}
       <aside className="w-full md:w-[450px] bg-white shadow-2xl flex flex-col md:h-screen md:overflow-hidden z-10 shrink-0 border-r border-gray-200">
         <div className="p-5 bg-gradient-to-r from-indigo-700 to-indigo-600 text-white flex justify-between items-center shadow-inner shrink-0">
           <div>
@@ -564,7 +559,6 @@ export default function App() {
         </div>
       </aside>
 
-      {/* Map Area */}
       <main className="flex-1 relative min-h-[500px] md:h-screen bg-gray-300 order-first md:order-last">
         <LongdoMap
           className="w-full h-full"
